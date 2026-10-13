@@ -38,7 +38,7 @@ type Page struct {
 type Store interface {
 	Save(context.Context, model.Answer, string) (Saved, error)
 	Get(context.Context, string) (Saved, error)
-	List(context.Context, int, int, string, string) (Page, error)
+	List(context.Context, int, int, string, string, string) (Page, error)
 	Rename(context.Context, string, string) (Saved, error)
 	Delete(context.Context, string) (bool, error)
 	Ready(context.Context) error
@@ -88,7 +88,7 @@ func (s *Postgres) Ready(ctx context.Context) error {
 	}
 	return nil
 }
-func (s *Postgres) List(ctx context.Context, page, size int, filter, tech string) (Page, error) {
+func (s *Postgres) List(ctx context.Context, page, size int, filter, tech, order string) (Page, error) {
 	p := Page{Items: []Summary{}, Page: page, PageSize: size}
 	tx, err := s.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *Postgres) List(ctx context.Context, page, size int, filter, tech string
 	if err != nil {
 		return p, err
 	}
-	rows, err := q.ListSaved(ctx, database.ListSavedParams{Filter: filter, Tech: tech, PageOffset: int32((page - 1) * size), PageLimit: int32(size)})
+	rows, err := q.ListSaved(ctx, database.ListSavedParams{Filter: filter, Tech: tech, SortOrder: order, PageOffset: int32((page - 1) * size), PageLimit: int32(size)})
 	if err != nil {
 		return p, err
 	}

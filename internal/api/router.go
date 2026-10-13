@@ -218,11 +218,19 @@ func New(c config.Config, store bookmarks.Store, engine service.Searcher) http.H
 					}
 				}
 				q, tech := r.URL.Query().Get("q"), r.URL.Query().Get("technology")
+				order := r.URL.Query().Get("order")
+				if order == "" {
+					order = "recent"
+				}
+				if order != "recent" && order != "oldest" && order != "title" {
+					fail(w, r, 400, "invalid_input", "Ordenação inválida")
+					return
+				}
 				if page < 1 || page > 100000 || size < 1 || size > 100 || !text(q, 0, 600) || !text(tech, 0, 100) {
 					fail(w, r, 400, "invalid_input", "Paginação ou filtros inválidos")
 					return
 				}
-				p, err := store.List(r.Context(), page, size, q, tech)
+				p, err := store.List(r.Context(), page, size, q, tech, order)
 				if err != nil {
 					dbError(w, r, err)
 					return

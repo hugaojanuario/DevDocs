@@ -23,7 +23,7 @@ func (s *fakeStore) Save(_ context.Context, a model.Answer, title string) (bookm
 func (s *fakeStore) Get(context.Context, string) (bookmarks.Saved, error) {
 	return bookmarks.Saved{}, nil
 }
-func (s *fakeStore) List(_ context.Context, p, n int, q, t string) (bookmarks.Page, error) {
+func (s *fakeStore) List(_ context.Context, p, n int, q, t, order string) (bookmarks.Page, error) {
 	return bookmarks.Page{Items: []bookmarks.Summary{}, Page: p, PageSize: n}, nil
 }
 func (s *fakeStore) Rename(context.Context, string, string) (bookmarks.Saved, error) {

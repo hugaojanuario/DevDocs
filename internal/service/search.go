@@ -72,6 +72,9 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	technologies := search.Detect(r.Query)
+	if r.Technology != "" {
+		technologies = []string{r.Technology}
+	}
 	results, err := e.Provider.Search(ctx, r.Query, technologies)
 	if err != nil {
 		return model.Answer{}, err

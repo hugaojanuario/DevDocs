@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/hugojanuario/devdocs/internal/model"
+	"github.com/hugojanuario/devdocs/internal/search"
 	"github.com/hugojanuario/devdocs/internal/security"
 	"regexp"
 	"strings"
@@ -22,6 +23,17 @@ func text(s string, min, max int) bool {
 	return true
 }
 func validSearch(r *model.SearchRequest) bool {
+	if r.Technology != "" {
+		found := false
+		for _, t := range search.Technologies {
+			if t.ID == r.Technology {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
 	r.Query = strings.Join(strings.Fields(r.Query), " ")
 	if r.Language == "" {
 		r.Language = "pt-BR"

@@ -98,12 +98,16 @@ const listSaved = `-- name: ListSaved :many
 SELECT id, question, title, technology, created_at, updated_at FROM saved_queries
 WHERE ($1::text = '' OR strpos(lower(title || ' ' || question), lower($1)) > 0)
 AND ($2::text = '' OR technology = $2)
-ORDER BY created_at DESC, id DESC LIMIT $4 OFFSET $3
+ORDER BY
+ CASE WHEN $3::text = 'oldest' THEN created_at END ASC,
+ CASE WHEN $3::text = 'title' THEN lower(title) END ASC,
+ CASE WHEN $3::text = 'recent' THEN created_at END DESC, id DESC LIMIT $5 OFFSET $4
 `
 
 type ListSavedParams struct {
 	Filter     string `json:"filter"`
 	Tech       string `json:"tech"`
+	SortOrder  string `json:"sort_order"`
 	PageOffset int32  `json:"page_offset"`
 	PageLimit  int32  `json:"page_limit"`
 }
@@ -121,6 +125,7 @@ func (q *Queries) ListSaved(ctx context.Context, arg ListSavedParams) ([]ListSav
 	rows, err := q.db.Query(ctx, listSaved,
 		arg.Filter,
 		arg.Tech,
+		arg.SortOrder,
 		arg.PageOffset,
 		arg.PageLimit,
 	)

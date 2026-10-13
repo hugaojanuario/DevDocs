@@ -35,7 +35,7 @@ type Brave struct {
 }
 
 func (b *Brave) Search(ctx context.Context, q string, tech []string) ([]Result, error) {
-	terms := strings.Join(Terms(q), " ")
+	terms := strings.Join(Terms(q), " ") + " " + strings.Join(tech, " ")
 	if terms == "" {
 		terms = q
 	}

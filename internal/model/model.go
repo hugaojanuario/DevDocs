@@ -1,6 +1,7 @@
 package model
 
 type SearchRequest struct {
+	Technology       string   `json:"technology,omitempty"`
 	Query            string   `json:"query"`
 	Language         string   `json:"language"`
 	PreferredSources []string `json:"preferred_sources"`

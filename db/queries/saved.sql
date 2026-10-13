@@ -9,7 +9,10 @@ SELECT * FROM saved_queries WHERE id = $1;
 SELECT id, question, title, technology, created_at, updated_at FROM saved_queries
 WHERE (sqlc.arg(filter)::text = '' OR strpos(lower(title || ' ' || question), lower(sqlc.arg(filter))) > 0)
 AND (sqlc.arg(tech)::text = '' OR technology = sqlc.arg(tech))
-ORDER BY created_at DESC, id DESC LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
+ORDER BY
+ CASE WHEN sqlc.arg(sort_order)::text = 'oldest' THEN created_at END ASC,
+ CASE WHEN sqlc.arg(sort_order)::text = 'title' THEN lower(title) END ASC,
+ CASE WHEN sqlc.arg(sort_order)::text = 'recent' THEN created_at END DESC, id DESC LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
 
 -- name: CountSaved :one
 SELECT count(*) FROM saved_queries
