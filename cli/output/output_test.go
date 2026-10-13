@@ -28,3 +28,15 @@ func TestFormatsPreserveCode(t *testing.T) {
 		t.Fatal("escape allowed")
 	}
 }
+
+func TestContextAndOutputStaySeparate(t *testing.T) {
+	a := model.Answer{Examples: []model.Example{{Language: "python", Setup: "import pandas as pd", Code: `pd.read_csv("data.csv")`, Output: "Name Value\nfoo 1"}}}
+	var b bytes.Buffer
+	if err := Render(&b, a, "markdown", false); err != nil {
+		t.Fatal(err)
+	}
+	text := b.String()
+	if !strings.Contains(text, "```python\nimport pandas as pd\n\npd.read_csv(\"data.csv\")\n```") || !strings.Contains(text, "## Saída documentada\n\n```text\nName Value\nfoo 1\n```") || strings.Contains(text, "Como funciona?") {
+		t.Fatal(text)
+	}
+}

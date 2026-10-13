@@ -186,11 +186,19 @@ export interface components {
       code: string;
       explanations: components["schemas"]["Explanation"][];
       reference_id: string;
+      /** @description Original literal documentation block, before separating interactive prompts and output. */
+      source_code?: string;
+      /** @description Literal import statements collected from the same page for aliases used by this snippet. Context only; not a claim that every dependency is supplied. */
+      setup?: string;
+      /** @description Documented interactive output, never included in copied executable code. */
+      output?: string;
+      /** @description Reference providing the documented imports. Defaults to reference_id when absent. */
+      setup_reference_id?: string;
     };
     Evidence: {
       reference_id: string;
       /** @enum {string} */
-      field: "summary" | "description" | "example";
+      field: "summary" | "description" | "example" | "setup";
       quote: string;
     };
     SearchResponse: {

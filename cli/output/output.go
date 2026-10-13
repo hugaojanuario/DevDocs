@@ -42,20 +42,36 @@ func Render(w io.Writer, a model.Answer, format string, color bool) error {
 	}
 	heading(a.Title)
 	fmt.Fprintf(w, "%s | %s | %s\n\n", safe(a.Technology), safe(a.Mode), safe(a.Status))
-	heading("O que é?")
-	fmt.Fprintln(w, safe(a.Summary))
-	heading("Como funciona?")
-	fmt.Fprintln(w, safe(a.Description))
-	for _, ex := range a.Examples {
-		heading("Exemplo (" + ex.Language + ")")
+	if a.Summary != "" {
+		heading("O que é?")
+		fmt.Fprintln(w, safe(a.Summary))
+	}
+	if a.Description != "" {
+		heading("Como funciona?")
+		fmt.Fprintln(w, safe(a.Description))
+	}
+	block := func(code, language string) {
 		if format == "markdown" {
 			fence := "```"
-			for strings.Contains(ex.Code, fence) {
+			for strings.Contains(code, fence) {
 				fence += "`"
 			}
-			fmt.Fprintf(w, "%s%s\n%s\n%s\n\n", fence, safe(ex.Language), safe(ex.Code), fence)
+			fmt.Fprintf(w, "%s%s\n%s\n%s\n\n", fence, safe(language), safe(code), fence)
 		} else {
-			fmt.Fprintln(w, safe(ex.Code))
+			fmt.Fprintln(w, safe(code))
+		}
+	}
+	for _, ex := range a.Examples {
+		heading("Exemplo (" + ex.Language + ")")
+		fmt.Fprintln(w, "Trecho da documentação. Ajuste arquivos, variáveis e dependências ao seu ambiente.")
+		code := ex.Code
+		if ex.Setup != "" {
+			code = ex.Setup + "\n\n" + code
+		}
+		block(code, ex.Language)
+		if ex.Output != "" {
+			heading("Saída documentada")
+			block(ex.Output, "text")
 		}
 		for _, xp := range ex.Explanations {
 			fmt.Fprintf(w, "%s [%s]\n", safe(xp.Description), safe(xp.ReferenceID))

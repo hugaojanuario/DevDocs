@@ -39,11 +39,19 @@ logs, analytics ou arquivos de pesquisas. Fontes oficiais são reconhecidas por 
 registrados, não por substring do domínio. Para adicionar fontes/tecnologias, edite
 `internal/search/sources.go` e regenere o contrato/tipos quando acrescentar tecnologias selecionáveis.
 
-O resultado padrão traz um resumo e um exemplo principal. Pedidos básicos de hello world em
+O resultado padrão traz um resumo curto e um exemplo principal. Sessões Python/IPython e
+shell têm prompts removidos e saída separada do código. Imports documentados podem ser
+reutilizados das páginas consultadas, com sua própria referência. O botão de copiar inclui
+esses imports e os comandos, sem copiar a saída. Os exemplos são trechos documentados;
+arquivos, variáveis e dependências podem precisar de ajustes ao ambiente do usuário.
+
+Pedidos básicos de hello world em
 Python usam um template curto, com `print` e instrução de execução, sustentado por trechos
 coletados ao vivo da documentação oficial; Tkinter e asyncio exigem pedidos explícitos.
 
-Respostas são **determinísticas**: trechos literais e código de páginas acessíveis. Não há tradução
+Respostas são **determinísticas**: trechos e código de páginas acessíveis. O bloco literal é
+preservado em `source_code` e nas evidências; `code`, `setup` e `output` separam sua apresentação.
+Não há tradução
 inventada, interpretação de cada linha ou preenchimento de campos ausentes. A interface omite
 seções vazias e sinaliza conteúdo parcial. Explicações são parágrafos próximos ao exemplo, citados;
 exatidão didática perfeita não é garantida. A estrutura distingue resumo, descrição, exemplos,

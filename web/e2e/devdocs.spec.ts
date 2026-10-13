@@ -166,7 +166,7 @@ test("mobile: Sheet e código sem quebra", async ({ page }) => {
     page.getByRole("heading", { name: "Tecnologias", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Abrir pesquisa" }).click();
-  const searchSheet=page.getByRole("dialog", { name: "Nova pesquisa" });
+  const searchSheet = page.getByRole("dialog", { name: "Nova pesquisa" });
   await expect(searchSheet).toBeVisible();
   expect((await searchSheet.boundingBox())?.width).toBe(360);
   await page.keyboard.press("Escape");
@@ -270,4 +270,40 @@ test("resultado é acessível e não usa storage de pesquisas", async ({
   expect(keys.session).toEqual([]);
   expect(keys.cache).toEqual([]);
   expect(keys.databases).toEqual([]);
+});
+
+test("comandos, imports e saída têm apresentação separada", async ({
+  page,
+  context,
+}) => {
+  const example = {
+    language: "python",
+    code: 'pd.read_csv("data.csv")',
+    source_code: '>>> pd.read_csv("data.csv")\n   Name Value\n0  foo 1',
+    setup: "import pandas as pd",
+    output: "   Name Value\n0  foo 1",
+    explanations: [],
+    reference_id: "source-1",
+  };
+  await page.route("**/api/v1/search", (route) =>
+    route.fulfill({ json: { ...answer, examples: [example] } }),
+  );
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/search?q=Como+ler+CSV+com+Pandas");
+  await expect(page.locator('pre[aria-label="Código python"]')).toHaveText(
+    'import pandas as pd\n\npd.read_csv("data.csv")',
+  );
+  await expect(page.locator('pre[aria-label="Código text"]')).toHaveText(
+    example.output,
+  );
+  await expect(
+    page.locator(".dd-code-title").filter({ hasText: "Saída documentada" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Copiar", exact: true })
+    .first()
+    .click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    'import pandas as pd\n\npd.read_csv("data.csv")',
+  );
 });

@@ -49,7 +49,29 @@ export function ResultView({
           <div className="dd-example-stack">
             {answer.examples.map((example, i) => (
               <div key={i}>
-                <CodeBlock code={example.code} language={example.language} />
+                <p className="mb-3 text-sm text-ink-muted">
+                  Trecho da documentação. Ajuste arquivos, variáveis e
+                  dependências ao seu ambiente.
+                </p>
+                <CodeBlock
+                  code={
+                    example.setup
+                      ? `${example.setup}\n\n${example.code}`
+                      : example.code
+                  }
+                  language={example.language}
+                  title="Código"
+                />
+                {example.output && (
+                  <div className="mt-4">
+                    <CodeBlock
+                      code={example.output}
+                      language="text"
+                      title="Saída documentada"
+                      showLineNumbers={false}
+                    />
+                  </div>
+                )}
                 <CodeExplanation items={example.explanations} />
               </div>
             ))}
