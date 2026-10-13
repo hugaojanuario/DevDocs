@@ -3,7 +3,7 @@
   "info": {
     "title": "DevDocs API",
     "version": "1.0.0",
-    "description": "Single-user. No search is persisted. Explicit save only. Bearer CLI token or web HttpOnly session. Cookie-authenticated mutations require X-CSRF-Token and matching configured Origin. AI=true returns 503 until an AnswerProvider is enabled. Quotes retain source language; template notes support pt-BR/en."
+    "description": "Single-user. No search is persisted. Explicit save only. Bearer CLI token or web HttpOnly session. Cookie-authenticated mutations require X-CSRF-Token and matching configured Origin. AI synthesis is optional and requires GROQ_API_KEY. Without it AI=true returns 503 ai_unavailable. Groq errors fall back to labeled deterministic evidence. Literal evidence retains source language; ai_assisted prose may translate/paraphrase it without changing examples or references."
   },
   "servers": [
     {
@@ -1750,6 +1750,41 @@
           }
         ]
       }
+    },
+    "/capabilities": {
+      "get": {
+        "operationId": "capabilities",
+        "responses": {
+          "200": {
+            "description": "Configured optional features (no credentials)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cliToken": []
+          },
+          {
+            "webSession": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2313,6 +2348,26 @@
         "required": [
           "csrf_token",
           "expires_at"
+        ]
+      },
+      "Capabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ai_available": {
+            "type": "boolean"
+          },
+          "ai_provider": {
+            "type": "string"
+          },
+          "ai_model": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ai_available",
+          "ai_provider",
+          "ai_model"
         ]
       }
     },

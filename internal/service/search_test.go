@@ -64,7 +64,7 @@ func TestSearchFailureAndAI(t *testing.T) {
 	if _, err := e.Search(context.Background(), model.SearchRequest{Query: "Python CSV"}); !errors.Is(err, search.ErrProvider) {
 		t.Fatal(err)
 	}
-	if _, err := e.Search(context.Background(), model.SearchRequest{AIEnabled: true}); !errors.Is(err, search.ErrUnavailable) {
+	if _, err := e.Search(context.Background(), model.SearchRequest{AIEnabled: true}); !errors.Is(err, ErrAINotConfigured) {
 		t.Fatal(err)
 	}
 }

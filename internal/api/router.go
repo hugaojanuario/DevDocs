@@ -151,6 +151,13 @@ func New(c config.Config, store bookmarks.Store, engine service.Searcher) http.H
 			r.Use(rate(120))
 			r.Get("/auth/session", a.current)
 			r.Delete("/auth/session", a.logout)
+			r.Get("/capabilities", func(w http.ResponseWriter, r *http.Request) {
+				provider, modelName := "", ""
+				if c.GroqKey != "" {
+					provider, modelName = "groq", c.GroqModel
+				}
+				jsonResponse(w, 200, map[string]any{"ai_available": c.GroqKey != "", "ai_provider": provider, "ai_model": modelName})
+			})
 			r.With(rate(20)).Post("/search", func(w http.ResponseWriter, r *http.Request) {
 				var body model.SearchRequest
 				if !decode(w, r, &body) {
@@ -160,13 +167,15 @@ func New(c config.Config, store bookmarks.Store, engine service.Searcher) http.H
 					fail(w, r, 400, "invalid_input", "Consulta ou opções inválidas")
 					return
 				}
-				if body.AIEnabled {
-					fail(w, r, 503, "ai_unavailable", "IA opcional ainda não configurada")
+				if body.AIEnabled && c.GroqKey == "" {
+					fail(w, r, 503, "ai_unavailable", "IA opcional não configurada")
 					return
 				}
 				answer, err := engine.Search(r.Context(), body)
 				if err != nil {
-					if errors.Is(err, search.ErrProvider) {
+					if errors.Is(err, service.ErrAINotConfigured) {
+						fail(w, r, 503, "ai_unavailable", "IA opcional não configurada")
+					} else if errors.Is(err, search.ErrProvider) {
 						fail(w, r, 502, "provider_failed", "Provedor de busca falhou")
 					} else {
 						fail(w, r, 503, "search_unavailable", "Nenhuma evidência disponível; configure um provedor ou tente outra tecnologia")

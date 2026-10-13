@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	GroqKey, GroqModel                                                                     string
 	Addr, DatabaseURL, CLIToken, WebPassword, Origin, BraveKey, SearchProvider, Migrations string
 	SecureCookie                                                                           bool
 	CacheTTL                                                                               time.Duration
@@ -19,6 +20,11 @@ type Config struct {
 func Load() (Config, error) {
 	c := Config{Addr: env("API_ADDR", ":8081"), DatabaseURL: os.Getenv("DATABASE_URL"), CLIToken: os.Getenv("CLI_TOKEN"), WebPassword: os.Getenv("WEB_PASSWORD"), Origin: env("WEB_ORIGIN", "http://localhost:8080"), BraveKey: os.Getenv("BRAVE_API_KEY"), SearchProvider: env("SEARCH_PROVIDER", "official"), Migrations: env("MIGRATIONS_DIR", "db/migrations"), CacheTTL: 5 * time.Minute, CacheEntries: 32}
 	c.CLIToken = strings.TrimSpace(c.CLIToken)
+	c.GroqKey = strings.TrimSpace(os.Getenv("GROQ_API_KEY"))
+	c.GroqModel = env("GROQ_MODEL", "openai/gpt-oss-20b")
+	if strings.ContainsAny(c.GroqKey, "\r\n\t ") || len(c.GroqModel) > 100 || strings.ContainsAny(c.GroqModel, "\r\n\t ") {
+		return c, fmt.Errorf("invalid Groq configuration")
+	}
 	if strings.ContainsAny(c.CLIToken, "\r\n\t ") {
 		return c, fmt.Errorf("CLI_TOKEN cannot contain whitespace")
 	}

@@ -36,3 +36,18 @@ func TestNormalizedEvidenceCannotBeChangedWhenSaving(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 }
+
+func TestAIParaphraseKeepsLiteralSupportingEvidence(t *testing.T) {
+	a := normalizedAnswer()
+	a.Mode = "ai_assisted"
+	a.Summary = "Resumo traduzido da evidência."
+	a.Description = "Descrição sintetizada do código."
+	a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: "source-1", Field: "description", Quote: a.Examples[0].SourceCode})
+	if !validAnswer(a) {
+		t.Fatal("AI prose with literal supporting evidence rejected")
+	}
+	a.Evidence[len(a.Evidence)-1].Quote = "unsupported"
+	if validAnswer(a) {
+		t.Fatal("unsupported synthesis evidence accepted")
+	}
+}

@@ -114,7 +114,7 @@ func New() *cobra.Command {
 		return output.Render(cmd.OutOrStdout(), a, format, colored(cmd))
 	}}
 	query.Flags().BoolVar(&save, "save", false, "Persistir explicitamente a resposta")
-	query.Flags().BoolVar(&ai, "ai", false, "Solicitar IA opcional (indisponível na V1)")
+	query.Flags().BoolVar(&ai, "ai", false, "Explicar trechos com IA opcional configurada no servidor")
 	query.Flags().StringVar(&language, "language", "pt-BR", "pt-BR ou en")
 	query.Flags().StringSliceVar(&sources, "sources", nil, "official, complementary")
 	root.AddCommand(query)

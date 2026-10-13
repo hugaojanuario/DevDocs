@@ -122,12 +122,25 @@ func validAnswer(a model.Answer) bool {
 		}
 		switch ev.Field {
 		case "summary":
-			if ev.Quote != a.Summary || ev.Quote != r.Excerpt {
+			if (a.Mode != "ai_assisted" && ev.Quote != a.Summary) || ev.Quote != r.Excerpt {
 				return false
 			}
 			hasSummary = true
 		case "description":
-			if ev.Quote != a.Description {
+			supported := ev.Quote == a.Description
+			if a.Mode == "ai_assisted" {
+				supported = ev.Quote == r.Excerpt
+				for _, ex := range a.Examples {
+					quote := ex.SourceCode
+					if quote == "" {
+						quote = ex.Code
+					}
+					if ex.ReferenceID == ev.ReferenceID && ev.Quote == quote {
+						supported = true
+					}
+				}
+			}
+			if !supported {
 				return false
 			}
 			hasDescription = true

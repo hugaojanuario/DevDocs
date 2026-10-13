@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/hugojanuario/devdocs/internal/ai"
 	"github.com/hugojanuario/devdocs/internal/api"
 	"github.com/hugojanuario/devdocs/internal/bookmarks"
 	"github.com/hugojanuario/devdocs/internal/config"
@@ -62,6 +63,9 @@ func run() error {
 		provider = &search.Brave{Key: c.BraveKey, Fetcher: fetcher, Fallback: official}
 	}
 	engine := service.New(provider, fetcher, c.CacheTTL, c.CacheEntries)
+	if c.GroqKey != "" {
+		engine.Synthesis = ai.NewGroq(c.GroqKey, c.GroqModel)
+	}
 	server := &http.Server{Addr: c.Addr, Handler: api.New(c, store, engine), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 60 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	done := make(chan error, 1)
 	go func() { slog.Info("api listening", "addr", c.Addr); done <- server.ListenAndServe() }()

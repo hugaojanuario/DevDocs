@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// Optional future synthesis must consume only collected evidence. No AI provider is enabled in V1.
+// Synthesis consumes only collected evidence and preserves code and references.
 type AnswerProvider interface {
 	Answer(context.Context, model.Answer) (model.Answer, error)
 }
@@ -28,6 +28,7 @@ type entry struct {
 	expires time.Time
 }
 type Engine struct {
+	Synthesis  AnswerProvider
 	Provider   search.SearchProvider
 	Fetcher    search.ContentFetcher
 	TTL        time.Duration
@@ -42,8 +43,8 @@ func New(provider search.SearchProvider, fetcher search.ContentFetcher, ttl time
 	return &Engine{Provider: provider, Fetcher: fetcher, TTL: ttl, Capacity: capacity, cache: map[[32]byte]entry{}, slots: make(chan struct{}, 4)}
 }
 func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answer, error) {
-	if r.AIEnabled {
-		return model.Answer{}, search.ErrUnavailable
+	if r.AIEnabled && e.Synthesis == nil {
+		return model.Answer{}, ErrAINotConfigured
 	}
 	r.Query = strings.Join(strings.Fields(r.Query), " ")
 	if r.Language == "" {
@@ -83,7 +84,7 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 		if err != nil {
 			return model.Answer{}, err
 		}
-		return e.remember(key, generation, a)
+		return e.finish(ctx, r, key, generation, a)
 	}
 	results, err := e.Provider.Search(ctx, r.Query, technologies)
 	if err != nil {
@@ -252,7 +253,7 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 			a.Observations = append(a.Observations, "A versão solicitada não foi confirmada nas fontes coletadas. Confira a versão de cada referência.")
 		}
 	}
-	return e.remember(key, generation, a)
+	return e.finish(ctx, r, key, generation, a)
 }
 
 func (e *Engine) remember(key [32]byte, generation uint64, a model.Answer) (model.Answer, error) {
