@@ -27,13 +27,14 @@ type entry struct {
 	expires time.Time
 }
 type Engine struct {
-	Provider search.SearchProvider
-	Fetcher  search.ContentFetcher
-	TTL      time.Duration
-	Capacity int
-	mu       sync.Mutex
-	cache    map[[32]byte]entry
-	slots    chan struct{}
+	Provider   search.SearchProvider
+	Fetcher    search.ContentFetcher
+	TTL        time.Duration
+	Capacity   int
+	mu         sync.Mutex
+	cache      map[[32]byte]entry
+	generation uint64
+	slots      chan struct{}
 }
 
 func New(provider search.SearchProvider, fetcher search.ContentFetcher, ttl time.Duration, capacity int) *Engine {
@@ -56,6 +57,7 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 			delete(e.cache, k)
 		}
 	}
+	generation := e.generation
 	cached, ok := e.cache[key]
 	e.mu.Unlock()
 	if ok {
@@ -189,9 +191,21 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 	} else {
 		a.Observations = append(a.Observations, "Trechos literais da documentação. Idioma original e indentação preservados. Explicação automática por linha não é garantida.")
 	}
+	requestedVersion := search.Version(r.Query)
+	if requestedVersion != "" && (a.Version == "" || !strings.HasPrefix(a.Version, requestedVersion)) {
+		if r.Language == "en" {
+			a.Observations = append(a.Observations, "The requested version could not be verified in the collected sources. Check each reference's version.")
+		} else {
+			a.Observations = append(a.Observations, "A versão solicitada não foi confirmada nas fontes coletadas. Confira a versão de cada referência.")
+		}
+	}
 	raw, _ = json.Marshal(a)
 	if e.TTL > 0 && e.Capacity > 0 && len(raw) <= 256<<10 {
 		e.mu.Lock()
+		if e.generation != generation {
+			e.mu.Unlock()
+			return a, nil
+		}
 		if len(e.cache) >= e.Capacity {
 			for k := range e.cache {
 				delete(e.cache, k)
@@ -213,4 +227,4 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 }
 
 // Clear removes transient search data, including after a saved query is deleted.
-func (e *Engine) Clear() { e.mu.Lock(); clear(e.cache); e.mu.Unlock() }
+func (e *Engine) Clear() { e.mu.Lock(); clear(e.cache); e.generation++; e.mu.Unlock() }

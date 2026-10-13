@@ -11,6 +11,7 @@ import (
 	"github.com/hugojanuario/devdocs/internal/search"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -145,5 +146,23 @@ func TestRateLimit(t *testing.T) {
 		if i == 20 && w.Code != 429 {
 			t.Fatal(w.Code)
 		}
+	}
+}
+
+func TestPayloadLimitAndOfficialClaim(t *testing.T) {
+	r, _, _ := testRouter()
+	req := httptest.NewRequest("POST", "/api/v1/search", strings.NewReader(`{"query":"test python"}`+strings.Repeat(" ", 1<<20)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer token")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != 413 {
+		t.Fatal("payload limit", w.Code)
+	}
+	a := testAnswer()
+	a.References[0].URL = "https://complementary.example/tutorial"
+	a.References[0].Domain = "complementary.example"
+	if validAnswer(a) {
+		t.Fatal("forged official claim accepted")
 	}
 }

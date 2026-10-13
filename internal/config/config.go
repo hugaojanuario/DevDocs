@@ -18,6 +18,10 @@ type Config struct {
 
 func Load() (Config, error) {
 	c := Config{Addr: env("API_ADDR", ":8081"), DatabaseURL: os.Getenv("DATABASE_URL"), CLIToken: os.Getenv("CLI_TOKEN"), WebPassword: os.Getenv("WEB_PASSWORD"), Origin: env("WEB_ORIGIN", "http://localhost:8080"), BraveKey: os.Getenv("BRAVE_API_KEY"), SearchProvider: env("SEARCH_PROVIDER", "official"), Migrations: env("MIGRATIONS_DIR", "db/migrations"), CacheTTL: 5 * time.Minute, CacheEntries: 32}
+	c.CLIToken = strings.TrimSpace(c.CLIToken)
+	if strings.ContainsAny(c.CLIToken, "\r\n\t ") {
+		return c, fmt.Errorf("CLI_TOKEN cannot contain whitespace")
+	}
 	if c.DatabaseURL == "" || len(c.CLIToken) < 32 || (len(c.WebPassword) < 16 || len(c.WebPassword) > 72) {
 		return c, fmt.Errorf("DATABASE_URL, CLI_TOKEN (32+ chars) and WEB_PASSWORD (16+ chars) required")
 	}

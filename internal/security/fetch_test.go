@@ -2,7 +2,9 @@ package security
 
 import (
 	"context"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -53,4 +55,36 @@ func TestRedirectRobotsAndLimits(t *testing.T) {
 	if _, _, e := f.Fetch(context.Background(), "https://example.org/ok", 1000); e != nil {
 		t.Fatal(e)
 	}
+}
+
+func TestDNSValidationAndPinnedDial(t *testing.T) {
+	calls := 0
+	lookup := func(context.Context, string, string) ([]netip.Addr, error) {
+		return []netip.Addr{netip.MustParseAddr("1.1.1.1"), netip.MustParseAddr("127.0.0.1")}, nil
+	}
+	dial := func(context.Context, string, string) (net.Conn, error) {
+		calls++
+		return nil, errors.New("unexpected dial")
+	}
+	if _, err := dialPublic(context.Background(), "tcp", "example.org:443", lookup, dial); err == nil || calls != 0 {
+		t.Fatal("mixed public/private DNS accepted")
+	}
+	resolved := 0
+	lookup = func(context.Context, string, string) ([]netip.Addr, error) {
+		resolved++
+		return []netip.Addr{netip.MustParseAddr("1.1.1.1")}, nil
+	}
+	dial = func(_ context.Context, network, address string) (net.Conn, error) {
+		if address != "1.1.1.1:443" {
+			t.Fatal("hostname re-resolved instead of pinned", address)
+		}
+		a, b := net.Pipe()
+		b.Close()
+		return a, nil
+	}
+	conn, err := dialPublic(context.Background(), "tcp", "example.org:443", lookup, dial)
+	if err != nil || resolved != 1 {
+		t.Fatal(err, resolved)
+	}
+	conn.Close()
 }

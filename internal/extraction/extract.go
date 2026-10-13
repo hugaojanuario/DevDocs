@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/hugojanuario/devdocs/internal/model"
+	"github.com/hugojanuario/devdocs/internal/search"
 	"strings"
 	"unicode/utf8"
 )
@@ -40,7 +41,11 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 	if title == "" {
 		title = clean(doc.Find("title").Text())
 	}
+	pageTitle := clean(doc.Find("title").Text())
 	version := doc.Find(`meta[name="version"],meta[name="docsearch:version"]`).First().AttrOr("content", "")
+	if version == "" {
+		version = search.Version(pageTitle)
+	}
 	doc.Find("script,style,nav,header,footer,aside,.sidebar,.toc,.wy-nav-side,.headerlink,.copybtn,.linenos,.line-numbers,.navigation").Remove()
 	content := doc.Find("main,article,[role=main],.document,.rst-content").First()
 	if content.Length() == 0 {

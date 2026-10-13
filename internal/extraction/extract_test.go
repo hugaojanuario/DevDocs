@@ -21,3 +21,10 @@ func TestEvidenceAndIndentation(t *testing.T) {
 		t.Fatal("invented evidence")
 	}
 }
+
+func TestVersionFromDocumentTitle(t *testing.T) {
+	d, e := Extract([]byte(`<html><head><title>csv — Python 3.14.5 documentation</title></head><body><main><h1>csv</h1><p>CSV reader documented for reading files.</p></main></body></html>`), []string{"csv"}, "source-1", "python")
+	if e != nil || d.Version != "3.14.5" {
+		t.Fatal(d.Version, e)
+	}
+}

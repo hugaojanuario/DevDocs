@@ -65,28 +65,10 @@ type robotEntry struct {
 func NewFetcher() *Fetcher {
 	t := &http.Transport{Proxy: nil, MaxIdleConns: 16, MaxIdleConnsPerHost: 2, IdleConnTimeout: 30 * time.Second, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 8 * time.Second}
 	t.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
-		h, p, e := net.SplitHostPort(address)
-		if e != nil {
-			return nil, ErrBlocked
-		}
-		ips, e := net.DefaultResolver.LookupNetIP(ctx, "ip", h)
-		if e != nil || len(ips) == 0 {
-			return nil, ErrBlocked
-		}
-		for _, ip := range ips {
-			if !PublicIP(ip) {
-				return nil, ErrBlocked
-			}
-		}
-		d := net.Dialer{Timeout: 5 * time.Second}
-		for _, ip := range ips {
-			c, e := d.DialContext(ctx, network, net.JoinHostPort(ip.String(), p))
-			if e == nil {
-				return c, nil
-			}
-		}
-		return nil, ErrBlocked
+		d := &net.Dialer{Timeout: 5 * time.Second}
+		return dialPublic(ctx, network, address, net.DefaultResolver.LookupNetIP, d.DialContext)
 	}
+
 	return &Fetcher{client: &http.Client{Transport: t, Timeout: 12 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, slots: make(chan struct{}, 4), robots: map[string]robotEntry{}}
 }
 func (f *Fetcher) request(ctx context.Context, raw string, max int64, headers http.Header) ([]byte, int, string, string, error) {
@@ -252,4 +234,27 @@ func (f *Fetcher) get(ctx context.Context, raw string, max int64, robots bool, h
 		return b, raw, nil
 	}
 	return nil, "", errors.New("redirect limit exceeded")
+}
+
+func dialPublic(ctx context.Context, network, address string, lookup func(context.Context, string, string) ([]netip.Addr, error), dial func(context.Context, string, string) (net.Conn, error)) (net.Conn, error) {
+	h, p, e := net.SplitHostPort(address)
+	if e != nil {
+		return nil, ErrBlocked
+	}
+	ips, e := lookup(ctx, "ip", h)
+	if e != nil || len(ips) == 0 {
+		return nil, ErrBlocked
+	}
+	for _, ip := range ips {
+		if !PublicIP(ip) {
+			return nil, ErrBlocked
+		}
+	}
+	for _, ip := range ips {
+		c, e := dial(ctx, network, net.JoinHostPort(ip.String(), p))
+		if e == nil {
+			return c, nil
+		}
+	}
+	return nil, ErrBlocked
 }

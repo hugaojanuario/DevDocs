@@ -169,7 +169,9 @@ func New() *cobra.Command {
 		if format == "json" {
 			return output.JSON(cmd.OutOrStdout(), v)
 		}
-		return output.Render(cmd.OutOrStdout(), v.Response, format, colored(cmd))
+		answer := v.Response
+		answer.Title = v.Title
+		return output.Render(cmd.OutOrStdout(), answer, format, colored(cmd))
 	}})
 	saved.AddCommand(&cobra.Command{Use: "rename <uuid> <title>", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
 		if e := validID(args); e != nil {

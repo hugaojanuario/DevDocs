@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers/legacy"
@@ -21,6 +22,7 @@ func TestResponsesMatchPublishedContract(t *testing.T) {
 	if err = doc.Validate(ctx); err != nil {
 		t.Fatal(err)
 	}
+	doc.Servers = openapi3.Servers{&openapi3.Server{URL: "http://localhost/api/v1"}}
 	routes, err := legacy.NewRouter(doc)
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +34,7 @@ func TestResponsesMatchPublishedContract(t *testing.T) {
 		auth         bool
 	}{{"GET", "/api/v1/health", nil, false}, {"GET", "/api/v1/ready", nil, false}, {"GET", "/api/v1/technologies", nil, true}, {"GET", "/api/v1/sources", nil, true}, {"GET", "/api/v1/saved", nil, true}, {"GET", "/api/v1/saved", nil, false}, {"POST", "/api/v1/search", model.SearchRequest{Query: "test python"}, true}, {"POST", "/api/v1/saved", map[string]any{"response": testAnswer()}, true}}
 	for _, c := range cases {
-		t.Run(c.method+c.path+string(rune(len(cases))), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s %s auth=%t", c.method, c.path, c.auth), func(t *testing.T) {
 			b, _ := json.Marshal(c.body)
 			req := httptest.NewRequest(c.method, "http://localhost"+c.path, bytes.NewReader(b))
 			req.Header.Set("Content-Type", "application/json")

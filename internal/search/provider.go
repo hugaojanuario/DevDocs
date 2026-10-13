@@ -122,7 +122,7 @@ func (p *Official) Search(ctx context.Context, q string, tech []string) ([]Resul
 			}
 			u := *base
 			u.Path = path.Join(path.Dir(base.Path), rel)
-			out = append(out, Result{Title: idx.Titles[id], URL: u.String(), Score: score})
+			out = append(out, Result{Title: idx.Titles[id], URL: u.String(), Score: score + titleRelevance(idx.Titles[id], q, tech)})
 		}
 	}
 	if !available || len(out) == 0 {
@@ -182,4 +182,28 @@ func Rank(results []Result, tech []string) []Result {
 		return results[i].Score > results[j].Score
 	})
 	return results
+}
+
+// Function names such as read_csv should outrank pages that mention CSV only in their body.
+func titleRelevance(title, query string, technologies []string) int {
+	title = strings.ToLower(title)
+	normalized := strings.NewReplacer("_", " ", ".", " ", "-", " ").Replace(title)
+	terms := Terms(query)
+	specific := []string{}
+	score := 0
+	for _, term := range terms {
+		if contains(technologies, term) {
+			continue
+		}
+		specific = append(specific, term)
+		if strings.Contains(title, term) {
+			score += 20
+		}
+	}
+	for i := 0; i+1 < len(specific); i++ {
+		if strings.Contains(normalized, specific[i]+" "+specific[i+1]) {
+			score += 100
+		}
+	}
+	return score
 }

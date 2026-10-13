@@ -45,8 +45,11 @@ func decode(w http.ResponseWriter, r *http.Request, out any) bool {
 	d.DisallowUnknownFields()
 	err := d.Decode(out)
 	if err == nil {
-		if d.Decode(new(any)) != io.EOF {
+		extra := d.Decode(new(any))
+		if extra == nil {
 			err = errors.New("trailing body")
+		} else if extra != io.EOF {
+			err = extra
 		}
 	}
 	if err != nil {

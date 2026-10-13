@@ -62,3 +62,9 @@ func TestProviderFailureAndOfficialFallback(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestFunctionTitleRanksBeforeGeneralMentions(t *testing.T) {
+	if titleRelevance("pandas.read_csv", "Como ler um CSV com Pandas?", []string{"pandas"}) <= titleRelevance("Comparison with spreadsheets", "Como ler um CSV com Pandas?", []string{"pandas"}) {
+		t.Fatal("function relevance lost")
+	}
+}

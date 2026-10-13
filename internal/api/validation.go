@@ -66,6 +66,9 @@ func validAnswer(a model.Answer) bool {
 		if _, ok := refs[r.ID]; ok {
 			return false
 		}
+		if _, official := search.Classify(r.URL); r.Official != official {
+			return false
+		}
 		refs[r.ID] = r
 	}
 	for _, ex := range a.Examples {

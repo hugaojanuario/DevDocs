@@ -30,7 +30,10 @@ func run() error {
 		return err
 	}
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
-		return database.Migrate(c.DatabaseURL, c.Migrations)
+		if err := database.Migrate(c.DatabaseURL, c.Migrations); err != nil {
+			return generic("migration failed")
+		}
+		return nil
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
