@@ -3,11 +3,12 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { SidebarNav } from "./SidebarNav";
 import { SkipLink } from "./SkipLink";
+import { defaultCollapsed, desktopMedia } from "../../lib/responsive";
 export function AppShell() {
-  const [collapsed, setCollapsed] = useState(() => innerWidth < 1024);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const location = useLocation();
   useEffect(() => {
-    const media = matchMedia("(min-width: 1024px)");
+    const media = desktopMedia();
     const update = () => setCollapsed(!media.matches);
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);

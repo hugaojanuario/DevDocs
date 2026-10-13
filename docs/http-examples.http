@@ -1,0 +1,52 @@
+# Run in an HTTP client with private variables; do not commit actual credentials.
+@base = http://localhost:8080/api/v1
+
+GET {{base}}/ready
+
+### Authenticate CLI (token supplied by your HTTP client, not inline in this file)
+GET {{base}}/technologies
+Authorization: Bearer {{cli_token}}
+
+### Transient search: never automatically saved
+POST {{base}}/search
+Authorization: Bearer {{cli_token}}
+Content-Type: application/json
+
+{"query":"Como ler CSV usando Pandas?","language":"pt-BR","preferred_sources":["official"],"ai_enabled":false,"technology":"pandas"}
+
+### Explicitly save the complete response obtained above, without another search
+POST {{base}}/saved
+Authorization: Bearer {{cli_token}}
+Content-Type: application/json
+
+{"response":{{search_response}},"title":"Leitura de CSV"}
+
+### Filter / paginate / sort
+GET {{base}}/saved?page=1&page_size=20&technology=pandas&order=title
+Authorization: Bearer {{cli_token}}
+
+### Rename
+PATCH {{base}}/saved/{{saved_id}}
+Authorization: Bearer {{cli_token}}
+Content-Type: application/json
+
+{"title":"Minha referência CSV"}
+
+### Physical delete
+DELETE {{base}}/saved/{{saved_id}}
+Authorization: Bearer {{cli_token}}
+
+### Web login (same configured Origin)
+POST {{base}}/auth/session
+Origin: http://localhost:8080
+Content-Type: application/json
+
+{"password":"{{web_password}}"}
+
+### Session-authenticated search
+POST {{base}}/search
+Origin: http://localhost:8080
+X-CSRF-Token: {{csrf_token}}
+Content-Type: application/json
+
+{"query":"Como ler CSV usando Pandas?"}

@@ -1,0 +1,294 @@
+{
+  "info": {
+    "name": "DevDocs — explicit persistence contract",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "cli_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Readiness",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/ready"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Readiness: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication required",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/saved"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Authentication required: HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registered technologies",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/technologies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registered technologies: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('technologies array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Live official search",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/search",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"query\": \"Como ler CSV usando Pandas?\", \"language\": \"pt-BR\", \"preferred_sources\": [\"official\"], \"ai_enabled\": false}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Live official search: HTTP 200', () => pm.response.to.have.status(200));",
+              "const a=pm.response.json(); pm.test('cited evidence',()=>{pm.expect(a.mode).to.eql('deterministic');pm.expect(a.references.length).to.be.above(0);pm.expect(a.evidence).to.be.an('array');}); pm.variables.set('answer',JSON.stringify(a));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Explicit save without search",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/saved",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"response\":{{answer}},\"title\":\"Validação Postman explícita\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Explicit save without search: HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.variables.set('saved_id',pm.response.json().id); pm.test('saved UUID',()=>pm.expect(pm.response.json().id).to.match(/^[0-9a-f-]{36}$/));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rename",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/saved/{{saved_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"Validação Postman renomeada\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rename: HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Open original saved response",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/saved/{{saved_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Open original saved response: HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('response preserved',()=>pm.expect(pm.response.json().response).to.deep.equal(JSON.parse(pm.variables.get('answer'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Physical delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/saved/{{saved_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Physical delete: HTTP 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deleted row unavailable",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{cli_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/saved/{{saved_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Deleted row unavailable: HTTP 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
