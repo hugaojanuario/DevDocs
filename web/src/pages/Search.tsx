@@ -51,7 +51,7 @@ export function SearchPage() {
         <EmptyState
           headingLevel={1}
           title="Nenhuma documentação encontrada"
-          description="Tente reformular a pergunta ou escolher outra tecnologia."
+          description={e.message}
           action={
             <Button asChild>
               <a href="/">Nova pesquisa</a>

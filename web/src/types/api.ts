@@ -373,7 +373,7 @@ export interface operations {
           "application/json": components["schemas"]["Error"];
         };
       };
-      /** @description Not found */
+      /** @description No matching evidence in the available documentation collections (not an outage) */
       404: {
         headers: {
           [name: string]: unknown;

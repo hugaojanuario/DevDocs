@@ -211,6 +211,26 @@ test("erros e parcial não inventam conteúdo", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText(
     "As fontes de documentação estão indisponíveis",
   );
+  await page.unroute("**/api/v1/search");
+  await page.route("**/api/v1/search", (route) =>
+    route.fulfill({
+      status: 404,
+      json: {
+        error: {
+          code: "no_evidence",
+          message: "Selecione a tecnologia ou reformule a pergunta.",
+          request_id: "test",
+        },
+      },
+    }),
+  );
+  await page.goto("/search?q=No+evidence+fixture");
+  await expect(
+    page.getByText("Selecione a tecnologia ou reformule a pergunta."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("As fontes de documentação estão indisponíveis no momento."),
+  ).toHaveCount(0);
 });
 test("falha ao excluir mantém diálogo e item", async ({ page, request }) => {
   const res = await request.post(origin + "/api/v1/saved", {

@@ -1,5 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { RotateCw } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -48,7 +48,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       {loading && (
         <RotateCw className="dd-icon dd-spin" size={16} aria-hidden />
       )}
-      {children}
+      {asChild ? <Slottable>{children}</Slottable> : children}
     </C>
   );
 });
