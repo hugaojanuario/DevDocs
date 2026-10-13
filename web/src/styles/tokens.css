@@ -1,0 +1,88 @@
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #0d0f12;
+  --surface-raised: #14171b;
+  --surface-sunken: #090a0c;
+  --surface-hover: #1b1f24;
+  --line: #252a30;
+  --line-control: #5f6873;
+  --ink: #e6e8eb;
+  --ink-muted: #9ba3ad;
+  --ink-subtle: #7f8893;
+  --accent: #5ad6a6;
+  --accent-soft: #0f2a21;
+  --on-accent: #04140e;
+  --ai: #f0b955;
+  --ai-soft: #2b2210;
+  --danger: #ff8a80;
+  --danger-soft: #36151a;
+  --on-danger: #1a0506;
+  --link: var(--accent);
+  --focus: var(--accent);
+  --syn-keyword: #ff9e7a;
+  --syn-string: #a6e3a1;
+  --syn-function: #82c8ff;
+  --syn-comment: #7f8893;
+  --syn-number: #f5c46b;
+  --syn-type: #d0a8ff;
+  --syn-plain: #d4d8dd;
+  --syn-punct: #aeb6bf;
+  --shadow-popover: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-dialog: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --surface: #fbfbfa;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f3f4f2;
+  --surface-hover: #eff0ee;
+  --line: #e2e3df;
+  --line-control: #878c93;
+  --ink: #15171a;
+  --ink-muted: #565c63;
+  --ink-subtle: #646a71;
+  --accent: #0b7a55;
+  --accent-soft: #e2f4ec;
+  --on-accent: #ffffff;
+  --ai: #8a5800;
+  --ai-soft: #fbf0d9;
+  --danger: #c0322b;
+  --danger-soft: #fcebe9;
+  --on-danger: #ffffff;
+  --link: var(--accent);
+  --focus: var(--accent);
+  --syn-keyword: #b8401c;
+  --syn-string: #2f7a2a;
+  --syn-function: #0b5fa8;
+  --syn-comment: #646a71;
+  --syn-number: #8a5800;
+  --syn-type: #7a3fbf;
+  --syn-plain: #24272b;
+  --syn-punct: #4a5057;
+  --shadow-popover: 0 8px 24px rgba(16,18,20,0.10);
+  --shadow-dialog: 0 24px 64px rgba(16,18,20,0.16);
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+  --content-width: 760px;
+  --wide-width: 1040px;
+  --sidebar-width: 240px;
+  --header-height: 52px;
+  --control-height: 36px;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}

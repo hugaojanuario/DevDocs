@@ -1,0 +1,11 @@
+import type { components } from "./api";
+export type Answer = components["schemas"]["SearchResponse"];
+export type SearchRequest = components["schemas"]["SearchRequest"];
+export type SavedQuery = components["schemas"]["SavedQuery"];
+export type SavedSummary = components["schemas"]["SavedSummary"];
+export type SavedPage = components["schemas"]["SavedPage"];
+export type Technology = components["schemas"]["Technology"];
+export type Source = components["schemas"]["Source"];
+export type Session = components["schemas"]["Session"];
+export type Example = components["schemas"]["Example"];
+export type Reference = components["schemas"]["Reference"];

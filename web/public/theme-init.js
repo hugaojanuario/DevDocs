@@ -1,0 +1,1 @@
+try { const pref=localStorage.getItem('devdocs.theme')||'dark';document.documentElement.dataset.theme=pref==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):(pref==='light'?'light':'dark'); } catch { document.documentElement.dataset.theme='dark'; }
