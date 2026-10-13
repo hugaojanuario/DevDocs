@@ -26,9 +26,11 @@ Não comite `.env`; o arquivo é ignorado pelo Git e pelo contexto de build Dock
 `SEARCH_PROVIDER=official` funciona sem API paga: consulta índices **Sphinx reais** de Python,
 Pandas, SQLAlchemy e Airflow quando acessíveis. Os índices são baixados transitoriamente;
 nenhuma pergunta é enviada nesses pedidos de índice. O registro inclui também PostgreSQL, Go,
-Docker, Spark, dbt, FastAPI e Kubernetes. Registro de fonte não significa índice público disponível.
-Tecnologias sem índice compatível, fontes que bloqueiam acesso e perguntas sem evidência retornam
-`503 search_unavailable`, nunca resultados simulados. `read_csv` é priorizado sobre páginas
+Docker, Spark, dbt, FastAPI e Kubernetes. Coleções sem Sphinx usam os índices HTML ou sitemaps
+publicados pelos próprios mantenedores. Perguntas sobre `.env` consultam também a documentação
+do python-dotenv. Downloads, extração e referências passam pelo mesmo fetcher seguro, com robots,
+limite de tamanho e sem gravar HTML. Ausência de correspondência retorna `404 no_evidence`;
+falha de acesso às fontes retorna `503 search_unavailable`. Não há resultados simulados. `read_csv` é priorizado sobre páginas
 que apenas mencionam CSV. Use `technology` para restringir a tecnologia sem alterar a pergunta.
 
 Para pesquisa ampla, configure `SEARCH_PROVIDER=brave` e `BRAVE_API_KEY` no `.env` e rode `make up`.

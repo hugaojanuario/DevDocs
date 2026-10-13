@@ -175,6 +175,8 @@ func New(c config.Config, store bookmarks.Store, engine service.Searcher) http.H
 				if err != nil {
 					if errors.Is(err, service.ErrAINotConfigured) {
 						fail(w, r, 503, "ai_unavailable", "IA opcional não configurada")
+					} else if errors.Is(err, search.ErrNotFound) {
+						fail(w, r, 404, "no_evidence", "Não encontrei documentação para esta consulta nas fontes disponíveis. Selecione a tecnologia ou reformule a pergunta.")
 					} else if errors.Is(err, search.ErrProvider) {
 						fail(w, r, 502, "provider_failed", "Provedor de busca falhou")
 					} else {

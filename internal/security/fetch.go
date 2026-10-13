@@ -228,7 +228,7 @@ func (f *Fetcher) get(ctx context.Context, raw string, max int64, robots bool, h
 			return nil, "", fmt.Errorf("source returned HTTP %d", status)
 		}
 		media, _, _ := mime.ParseMediaType(typ)
-		if robots && media != "text/html" && media != "application/xhtml+xml" && !strings.Contains(media, "javascript") && media != "application/json" && media != "text/plain" {
+		if robots && media != "text/html" && media != "application/xhtml+xml" && !strings.Contains(media, "javascript") && media != "application/json" && media != "text/plain" && media != "application/xml" && media != "text/xml" {
 			return nil, "", errors.New("unsupported source content type")
 		}
 		return b, raw, nil

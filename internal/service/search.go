@@ -231,6 +231,11 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 		break
 	}
 	if len(a.References) == 0 {
+		for _, d := range docs {
+			if d.err == nil {
+				return model.Answer{}, search.ErrNotFound
+			}
+		}
 		return model.Answer{}, search.ErrUnavailable
 	}
 	if a.Title == "" {

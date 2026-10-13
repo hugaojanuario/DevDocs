@@ -59,7 +59,7 @@ func TestProviderFailureAndOfficialFallback(t *testing.T) {
 	if _, e = b.Search(context.Background(), "Python CSV", nil); !errors.Is(e, ErrProvider) {
 		t.Fatal(e)
 	}
-	if _, e = official.Search(context.Background(), "unknown", nil); !errors.Is(e, ErrUnavailable) {
+	if _, e = official.Search(context.Background(), "unknown", nil); !errors.Is(e, ErrNotFound) {
 		t.Fatal(e)
 	}
 }

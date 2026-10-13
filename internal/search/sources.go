@@ -23,6 +23,7 @@ var Technologies = []Technology{
 	{"python", "Python", []string{"python", "dotenv", ".env"}}, {"pandas", "Pandas", []string{"pandas", "dataframe", "read_csv"}}, {"postgresql", "PostgreSQL", []string{"postgresql", "postgres", "cte", "sql", "join"}}, {"go", "Go", []string{"golang", "go"}}, {"docker", "Docker", []string{"docker", "container", "volumes"}}, {"airflow", "Airflow", []string{"airflow", "dag"}}, {"spark", "Spark", []string{"spark", "pyspark"}}, {"dbt", "dbt", []string{"dbt"}}, {"fastapi", "FastAPI", []string{"fastapi"}}, {"kubernetes", "Kubernetes", []string{"kubernetes", "k8s", "kubectl"}}, {"sqlalchemy", "SQLAlchemy", []string{"sqlalchemy"}},
 }
 var Sources = []Source{
+	{"bbc2.github.io", "/python-dotenv/", "python", true, ""},
 	{"docs.python.org", "/", "python", true, "https://docs.python.org/3/searchindex.js"},
 	{"pandas.pydata.org", "/", "pandas", true, "https://pandas.pydata.org/docs/searchindex.js"},
 	{"www.postgresql.org", "/docs/", "postgresql", true, ""}, {"postgresql.org", "/docs/", "postgresql", true, ""},
@@ -66,7 +67,7 @@ func Detect(q string) []string {
 }
 func Terms(q string) []string {
 	q = strings.ToLower(q)
-	replacements := map[string]string{"ler": "read", "leitura": "read", "csv": "csv", "arquivos": "file", "arquivo": "file", "volumes": "volume", "criar": "create", "utilizar": "use", "usar": "use", "três": "three", "juncao": "join", "junção": "join", "ambiente": "environment"}
+	replacements := map[string]string{"carregar": "load", "escrever": "write", "subir": "up", "serviços": "services", "servicos": "services", ".env": "dotenv", "listar": "list", "salvar": "save", "ler": "read", "leitura": "read", "csv": "csv", "arquivos": "file", "arquivo": "file", "volumes": "volume", "criar": "create", "utilizar": "use", "usar": "use", "três": "three", "juncao": "join", "junção": "join", "ambiente": "environment"}
 	stop := map[string]bool{"e": true, "para": true, "por": true, "que": true, "qual": true, "quero": true, "preciso": true, "fazer": true, "of": true, "with": true, "an": true, "please": true, "como": true, "com": true, "no": true, "na": true, "em": true, "de": true, "do": true, "da": true, "o": true, "a": true, "um": true, "uma": true, "usando": true, "how": true, "to": true, "in": true, "the": true, "use": true, "using": true}
 	seen := map[string]bool{}
 	out := []string{}
@@ -77,6 +78,10 @@ func Terms(q string) []string {
 		if !stop[w] && !seen[w] {
 			out = append(out, w)
 			seen[w] = true
+			if w == "cte" && !seen["with"] {
+				out = append(out, "with")
+				seen["with"] = true
+			}
 		}
 	}
 	return out

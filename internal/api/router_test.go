@@ -124,7 +124,7 @@ func TestValidationAndProviderErrors(t *testing.T) {
 			t.Fatal(path, w.Code)
 		}
 	}
-	for err, status := range map[error]int{search.ErrProvider: 502, search.ErrUnavailable: 503, errors.New("unexpected"): 503} {
+	for err, status := range map[error]int{search.ErrProvider: 502, search.ErrNotFound: 404, search.ErrUnavailable: 503, errors.New("unexpected"): 503} {
 		e.err = err
 		if w := request(r, "POST", "/api/v1/search", model.SearchRequest{Query: "test python"}, bearer); w.Code != status {
 			t.Fatal(w.Code)

@@ -198,6 +198,15 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 			explanations = append(explanations, model.Explanation{Snippet: code, Description: quote, ReferenceID: reference})
 		}
 		score := relevance(code, terms)*30 - min(strings.Count(code, "\n"), 30)*3
+		// Ordinary scripts and short output are more useful for a generic query
+		// than notebook-only syntax or long environment-specific transcripts.
+		if language == "python" && regexp.MustCompile(`(?m)^\s*%`).MatchString(code) {
+			score -= 40
+		}
+		score -= min(strings.Count(output, "\n"), 30)
+		if language == "shell" || language == "bash" || language == "console" {
+			score -= strings.Count(code, " -") * 2
+		}
 		if creating {
 			for _, term := range subjectTerms {
 				if identifierRE.MatchString(term) && regexp.MustCompile(`(?i)(?:\b|_)`+regexp.QuoteMeta(term)+`\s*\(`).MatchString(code) {

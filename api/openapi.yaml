@@ -64,7 +64,7 @@
             }
           },
           "404": {
-            "description": "Not found",
+            "description": "No matching evidence in the available documentation collections (not an outage)",
             "content": {
               "application/json": {
                 "schema": {

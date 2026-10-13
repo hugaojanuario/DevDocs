@@ -37,6 +37,9 @@ func TestExtractReusableContextAndPreferSimpleCode(t *testing.T) {
 }
 
 func TestNoInventedContext(t *testing.T) {
+	if got := ImportContext([]string{"import os"}, "load_dotenv() # sets os.environ"); got != "" {
+		t.Fatal("comment treated as dependency", got)
+	}
 	if got := ImportContext([]string{"print('pandas')", "    import pandas as pd"}, "pd.read_csv('file.csv')"); got != "" {
 		t.Fatal("guessed imports", got)
 	}
@@ -45,6 +48,17 @@ func TestNoInventedContext(t *testing.T) {
 	}
 	if got := ImportContext([]string{"import pandas as pd\nimport unrelated as pd"}, "pd.read_csv('file.csv')"); got != "" {
 		t.Fatal("ambiguous alias reused", got)
+	}
+}
+
+func TestGenericPythonQueryPrefersScriptOverNotebookMagic(t *testing.T) {
+	raw := []byte(`<main><h1>python-dotenv</h1><p>Read environment variables from dotenv files.</p><pre>from dotenv import load_dotenv
+
+load_dotenv() # sets os.environ</pre><pre>%load_ext dotenv
+%dotenv</pre></main>`)
+	d, err := Extract(raw, []string{"load", "dotenv"}, "source-1", "python")
+	if err != nil || len(d.Examples) != 2 || d.Examples[0].Code != "from dotenv import load_dotenv\n\nload_dotenv() # sets os.environ" {
+		t.Fatal(d, err)
 	}
 }
 

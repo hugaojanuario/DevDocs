@@ -13,6 +13,7 @@ import (
 )
 
 var ErrUnavailable = errors.New("search unavailable")
+var ErrNotFound = errors.New("no matching documentation")
 var ErrProvider = errors.New("search provider failed")
 
 type Result struct {
@@ -68,7 +69,7 @@ func (b *Brave) Search(ctx context.Context, q string, tech []string) ([]Result, 
 		out = append(out, Result{Title: r.Title, URL: r.URL, Snippet: r.Description})
 	}
 	if len(out) == 0 {
-		return nil, ErrUnavailable
+		return nil, ErrNotFound
 	}
 	return Rank(out, tech), nil
 }
@@ -83,14 +84,16 @@ type sphinxIndex struct {
 
 func (p *Official) Search(ctx context.Context, q string, tech []string) ([]Result, error) {
 	if len(tech) == 0 {
-		return nil, ErrUnavailable
+		return nil, ErrNotFound
 	}
 	out := []Result{}
 	available := false
+	attempted := false
 	for _, s := range Sources {
 		if s.IndexURL == "" || !contains(tech, s.Technology) {
 			continue
 		}
+		attempted = true
 		raw, _, e := p.Fetcher.Fetch(ctx, s.IndexURL, 8<<20)
 		if e != nil {
 			continue
@@ -139,9 +142,25 @@ func (p *Official) Search(ctx context.Context, q string, tech []string) ([]Resul
 			out = append(out, Result{Title: idx.Titles[id], URL: u.String(), Score: score + titleRelevance(idx.Titles[id], q, tech) + intro})
 		}
 	}
-	if !available || len(out) == 0 {
+	catalogResults, catalogAttempted, catalogAvailable := p.catalogSearch(ctx, q, tech)
+	out = append(out, catalogResults...)
+	available = available || catalogAvailable
+	attempted = attempted || catalogAttempted
+	if !available && attempted {
 		return nil, ErrUnavailable
 	}
+	if len(out) == 0 {
+		return nil, ErrNotFound
+	}
+	seen := map[string]bool{}
+	unique := []Result{}
+	for _, result := range out {
+		if !seen[result.URL] {
+			seen[result.URL] = true
+			unique = append(unique, result)
+		}
+	}
+	out = unique
 	out = Rank(out, tech)
 	if len(out) > 8 {
 		out = out[:8]

@@ -10,6 +10,12 @@ var importLine = regexp.MustCompile(`^(?:import ([A-Za-z_][\w.]*)|from [A-Za-z_]
 // Only documented, unambiguous single imports are reused. We do not invent
 // imports, install commands, file contents or missing variable definitions.
 func ImportContext(blocks []string, code string) string {
+	// A module mentioned only in an explanatory comment is not a dependency.
+	usage := []string{}
+	for _, line := range strings.Split(code, "\n") {
+		usage = append(usage, strings.SplitN(line, "#", 2)[0])
+	}
+	usedCode := strings.Join(usage, "\n")
 	order := []string{}
 	byName := map[string]string{}
 	conflicts := map[string]bool{}
@@ -30,7 +36,7 @@ func ImportContext(blocks []string, code string) string {
 			if name == "" {
 				name = strings.Split(m[1], ".")[0]
 			}
-			if regexp.MustCompile(`\b` + regexp.QuoteMeta(name) + `\s*[.(]`).MatchString(code) {
+			if regexp.MustCompile(`\b` + regexp.QuoteMeta(name) + `\s*[.(]`).MatchString(usedCode) {
 				if previous, ok := byName[name]; ok && previous != line {
 					conflicts[name] = true
 				} else if !ok {
