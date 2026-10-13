@@ -307,3 +307,58 @@ test("comandos, imports e saída têm apresentação separada", async ({
     'import pandas as pd\n\npd.read_csv("data.csv")',
   );
 });
+
+test("IA opcional altera request e rótulo sem persistir preferências", async ({
+  page,
+}) => {
+  const flags: boolean[] = [];
+  await page.route("**/api/v1/capabilities", (route) =>
+    route.fulfill({
+      json: {
+        ai_available: true,
+        ai_provider: "groq",
+        ai_model: "openai/gpt-oss-20b",
+      },
+    }),
+  );
+  await page.route("**/api/v1/search", (route) => {
+    const ai = route.request().postDataJSON().ai_enabled;
+    flags.push(ai);
+    return route.fulfill({
+      json: { ...answer, mode: ai ? "ai_assisted" : "deterministic" },
+    });
+  });
+  await page.goto("/settings");
+  const toggle = page.getByRole("checkbox", {
+    name: "Permitir síntese por IA",
+  });
+  await expect(toggle).toBeEnabled();
+  await expect(toggle).not.toBeChecked();
+  await toggle.check();
+  await page
+    .getByRole("searchbox", { name: "Pesquisar na documentação" })
+    .fill("Python CSV fixture");
+  await page
+    .getByRole("searchbox", { name: "Pesquisar na documentação" })
+    .press("Enter");
+  await expect(
+    page.getByText("Esta resposta foi sintetizada por IA", { exact: false }),
+  ).toBeVisible();
+  expect(flags).toContain(true);
+  await page.getByRole("link", { name: "Configurações", exact: true }).click();
+  await toggle.uncheck();
+  await page
+    .getByRole("searchbox", { name: "Pesquisar na documentação" })
+    .fill("Python CSV fixture");
+  await page
+    .getByRole("searchbox", { name: "Pesquisar na documentação" })
+    .press("Enter");
+  await expect(page.getByText("Determinístico", { exact: true })).toBeVisible();
+  expect(flags.at(-1)).toBe(false);
+  const storage = await page.evaluate(() => ({
+    local: Object.keys(localStorage),
+    session: Object.keys(sessionStorage),
+  }));
+  expect(storage.local.every((k) => k === "devdocs.theme")).toBe(true);
+  expect(storage.session).toEqual([]);
+});

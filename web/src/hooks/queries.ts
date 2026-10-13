@@ -2,12 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as saved from "../services/saved";
 import * as tech from "../services/technologies";
 import { postSearch } from "../services/search";
-import { health, ready } from "../services/system";
+import { health, ready, capabilities } from "../services/system";
 import { ApiError } from "../services/http";
 import type { Answer } from "../types/models";
-export const useSearch = (q: string, technology: string, official: boolean) =>
+export const useSearch = (
+  q: string,
+  technology: string,
+  official: boolean,
+  ai = false,
+) =>
   useQuery({
-    queryKey: ["search", q, technology, official],
+    queryKey: ["search", q, technology, official, ai],
     queryFn: ({ signal }) =>
       postSearch(
         {
@@ -16,7 +21,7 @@ export const useSearch = (q: string, technology: string, official: boolean) =>
           preferred_sources: official
             ? ["official"]
             : ["official", "complementary"],
-          ai_enabled: false,
+          ai_enabled: ai,
           ...(technology
             ? {
                 technology: technology as NonNullable<
@@ -30,7 +35,9 @@ export const useSearch = (q: string, technology: string, official: boolean) =>
     enabled: !!q,
     staleTime: 0,
     gcTime: 5 * 60_000,
+    refetchOnWindowFocus: !ai,
     retry: (count, error) =>
+      !ai &&
       count < 1 &&
       !(error instanceof ApiError && error.status >= 400 && error.status < 500),
   });
@@ -95,5 +102,13 @@ export const useHealth = () =>
       return ready(signal);
     },
     refetchInterval: 30_000,
+    retry: false,
+  });
+
+export const useCapabilities = () =>
+  useQuery({
+    queryKey: ["capabilities"],
+    queryFn: ({ signal }) => capabilities(signal),
+    staleTime: 60_000,
     retry: false,
   });

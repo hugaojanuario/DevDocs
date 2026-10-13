@@ -49,7 +49,7 @@ Pedidos básicos de hello world em
 Python usam um template curto, com `print` e instrução de execução, sustentado por trechos
 coletados ao vivo da documentação oficial; Tkinter e asyncio exigem pedidos explícitos.
 
-Respostas são **determinísticas**: trechos e código de páginas acessíveis. O bloco literal é
+Sem IA, as respostas são **determinísticas**: trechos e código de páginas acessíveis. O bloco literal é
 preservado em `source_code` e nas evidências; `code`, `setup` e `output` separam sua apresentação.
 Não há tradução
 inventada, interpretação de cada linha ou preenchimento de campos ausentes. A interface omite
@@ -59,8 +59,18 @@ observações, referências e evidências. Versões são extraídas de metadados
 identificáveis. Os índices oficiais usam a versão publicada/stable; uma versão solicitada pode
 não estar disponível, e a resposta sinaliza quando não consegue confirmá-la.
 
-`AnswerProvider` prepara síntese opcional futura. Nenhum LLM está ativado: `ai_enabled=true`
-retorna `503 ai_unavailable`. O frontend mantém o controle de IA desabilitado e sabe rotular
+`AnswerProvider` integra síntese opcional pela [Groq](https://console.groq.com/docs/structured-outputs),
+usando `GROQ_API_KEY` e `GROQ_MODEL` (padrão `openai/gpt-oss-20b`). A chave fica somente no
+`.env` ignorado pelo Git e no backend; nunca no navegador. Para trocar a chave, altere o `.env`
+e reinicie a API (`make up`). Sem chave, `ai_enabled=true` retorna `503 ai_unavailable`.
+Ative **Configurações → Permitir síntese por IA** na web ou use `devdocs search "pergunta" --ai`.
+A preferência web fica em memória e começa desligada. `GET /capabilities` informa disponibilidade
+sem expor credenciais. A síntese traduz/explica somente a evidência coletada, mantendo código,
+saída e referências. Respostas Groq passam por JSON Schema estrito e validação local; timeout,
+limite de saída e cache em memória limitam chamadas. Falha ou resposta inválida retorna os trechos
+determinísticos, com aviso, sem rotular como IA. A pergunta e os trechos são enviados à Groq
+apenas quando a opção está ligada; a retenção desse provedor está fora do controle do DevDocs.
+O frontend sabe rotular
 respostas `ai_assisted` preservadas no contrato. A V1 funciona sem IA paga.
 
 ## Persistência e exclusão

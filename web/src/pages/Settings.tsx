@@ -1,12 +1,14 @@
 import { Moon, Sun, Monitor } from "lucide-react";
 import { usePreferences } from "../lib/preferences";
-import { useHealth } from "../hooks/queries";
+import { useHealth, useCapabilities } from "../hooks/queries";
 import { Button } from "../components/ui/button";
 import { Icon } from "../components/common/Icon";
 import { Notice } from "../components/documentation/Notice";
 export function SettingsPage() {
-  const { theme, setTheme, official, setOfficial } = usePreferences();
+  const { theme, setTheme, official, setOfficial, ai, setAI } =
+    usePreferences();
   const system = useHealth();
+  const capabilities = useCapabilities();
   return (
     <div className="dd-doc">
       <h1 className="dd-page-title">Configurações</h1>
@@ -48,11 +50,18 @@ export function SettingsPage() {
       <section className="dd-settings-section">
         <h2>Inteligência artificial</h2>
         <label className="dd-toggle">
-          <input type="checkbox" disabled />
+          <input
+            type="checkbox"
+            checked={ai}
+            onChange={(e) => setAI(e.target.checked)}
+            disabled={!capabilities.data?.ai_available}
+          />
           Permitir síntese por IA
         </label>
         <Notice tone="info" title="IA opcional">
-          Disponível quando o backend habilitar síntese por IA.
+          {capabilities.data?.ai_available
+            ? "Ao ativar, a pergunta e os trechos consultados são enviados à Groq para síntese. A preferência fica apenas em memória nesta sessão."
+            : "IA indisponível. Configure a Groq no servidor para habilitar esta opção."}
         </Notice>
       </section>
       <section className="dd-settings-section">

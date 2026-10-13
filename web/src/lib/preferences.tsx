@@ -9,16 +9,21 @@ import { applyTheme, readThemePref, type ThemePref } from "./theme";
 const Prefs = createContext<{
   theme: ThemePref;
   setTheme: (v: ThemePref) => void;
+  ai: boolean;
+  setAI: (v: boolean) => void;
   official: boolean;
   setOfficial: (v: boolean) => void;
 }>({
   theme: "dark",
   setTheme: () => {},
+  ai: false,
+  setAI: () => {},
   official: false,
   setOfficial: () => {},
 });
 export function Preferences({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState(readThemePref);
+  const [ai, setAI] = useState(false);
   const [official, setOfficial] = useState(false);
   useEffect(() => {
     applyTheme(theme);
@@ -30,7 +35,9 @@ export function Preferences({ children }: { children: ReactNode }) {
     return () => m.removeEventListener("change", update);
   }, [theme]);
   return (
-    <Prefs.Provider value={{ theme, setTheme, official, setOfficial }}>
+    <Prefs.Provider
+      value={{ theme, setTheme, official, setOfficial, ai, setAI }}
+    >
       {children}
     </Prefs.Provider>
   );

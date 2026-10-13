@@ -134,6 +134,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/capabilities": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["capabilities"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -287,6 +303,11 @@ export interface components {
       csrf_token: string;
       /** Format: date-time */
       expires_at: string;
+    };
+    Capabilities: {
+      ai_available: boolean;
+      ai_provider: string;
+      ai_model: string;
     };
   };
   responses: never;
@@ -1775,6 +1796,35 @@ export interface operations {
       };
       /** @description Dependency / search unavailable */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
+    };
+  };
+  capabilities: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Configured optional features (no credentials) */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Capabilities"];
+        };
+      };
+      /** @description Authentication required */
+      401: {
         headers: {
           [name: string]: unknown;
         };

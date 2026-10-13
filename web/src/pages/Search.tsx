@@ -12,8 +12,8 @@ export function SearchPage() {
   const [params] = useSearchParams();
   const q = (params.get("q") ?? "").trim();
   const tech = params.get("tech") ?? "";
-  const { official } = usePreferences();
-  const result = useSearch(q, tech, official);
+  const { official, ai } = usePreferences();
+  const result = useSearch(q, tech, official, ai);
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     setSlow(false);
@@ -36,7 +36,7 @@ export function SearchPage() {
             title="A busca demorou mais que o esperado."
             action={retry}
           >
-            A requisição continua em andamento por até 30 segundos.
+            A requisição continua em andamento por até 45 segundos.
           </Notice>
         )}
         <ResultSkeleton />
@@ -79,6 +79,9 @@ export function SearchPage() {
     );
   }
   return (
-    <ResultView key={q + "|" + tech + "|" + official} answer={result.data} />
+    <ResultView
+      key={q + "|" + tech + "|" + official + "|" + ai}
+      answer={result.data}
+    />
   );
 }
