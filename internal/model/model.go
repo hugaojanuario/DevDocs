@@ -23,10 +23,14 @@ type Explanation struct {
 	ReferenceID string `json:"reference_id"`
 }
 type Example struct {
-	Language     string        `json:"language"`
-	Code         string        `json:"code"`
-	Explanations []Explanation `json:"explanations"`
-	ReferenceID  string        `json:"reference_id"`
+	SourceCode       string        `json:"source_code,omitempty"`
+	Setup            string        `json:"setup,omitempty"`
+	SetupReferenceID string        `json:"setup_reference_id,omitempty"`
+	Output           string        `json:"output,omitempty"`
+	Language         string        `json:"language"`
+	Code             string        `json:"code"`
+	Explanations     []Explanation `json:"explanations"`
+	ReferenceID      string        `json:"reference_id"`
 }
 type Evidence struct {
 	ReferenceID string `json:"reference_id"`

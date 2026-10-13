@@ -13,8 +13,8 @@ func TestEvidenceAndIndentation(t *testing.T) {
 	if d.Examples[0].Code != "if True:\n    read_csv(\"data.csv\")" {
 		t.Fatal("indentation changed")
 	}
-	if d.Examples[0].Explanations[0].Description != d.Summary {
-		t.Fatal("not cited evidence")
+	if len(d.Examples[0].Explanations) != 0 || d.Examples[0].SourceCode != d.Examples[0].Code {
+		t.Fatal("duplicate summary or missing source evidence")
 	}
 	empty, _ := Extract([]byte(`<main><p>An unrelated paragraph that contains no evidence.</p><pre>nothing()</pre></main>`), []string{"csv"}, "source-1", "python")
 	if empty.Summary != "" || len(empty.Examples) > 0 {

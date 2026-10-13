@@ -33,6 +33,11 @@ func TestResponsesMatchPublishedContract(t *testing.T) {
 		body         any
 		auth         bool
 	}{{"GET", "/api/v1/health", nil, false}, {"GET", "/api/v1/ready", nil, false}, {"GET", "/api/v1/technologies", nil, true}, {"GET", "/api/v1/sources", nil, true}, {"GET", "/api/v1/saved", nil, true}, {"GET", "/api/v1/saved", nil, false}, {"POST", "/api/v1/search", model.SearchRequest{Query: "test python"}, true}, {"POST", "/api/v1/saved", map[string]any{"response": testAnswer()}, true}}
+	cases = append(cases, struct {
+		method, path string
+		body         any
+		auth         bool
+	}{"POST", "/api/v1/saved", map[string]any{"response": normalizedAnswer()}, true})
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s %s auth=%t", c.method, c.path, c.auth), func(t *testing.T) {
 			b, _ := json.Marshal(c.body)

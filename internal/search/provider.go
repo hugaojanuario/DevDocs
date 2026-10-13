@@ -101,8 +101,13 @@ func (p *Official) Search(ctx context.Context, q string, tech []string) ([]Resul
 		}
 		available = true
 		scores := map[int]int{}
-		for _, term := range Terms(q) {
+		for _, term := range TopicTerms(q, tech) {
+			keys := map[string]bool{}
 			for _, key := range []string{term, strings.TrimSuffix(term, "s"), strings.TrimSuffix(term, "ing")} {
+				if keys[key] {
+					continue
+				}
+				keys[key] = true
 				for _, id := range indices(idx.Terms[key]) {
 					scores[id] += 1
 				}
@@ -113,7 +118,7 @@ func (p *Official) Search(ctx context.Context, q string, tech []string) ([]Resul
 		}
 		base, _ := url.Parse(s.IndexURL)
 		for id, score := range scores {
-			if score < 2 || id < 0 || id >= len(idx.Docnames) || id >= len(idx.Titles) {
+			if score < 1 || id < 0 || id >= len(idx.Docnames) || id >= len(idx.Titles) {
 				continue
 			}
 			rel := idx.Docnames[id] + ".html"
@@ -122,7 +127,16 @@ func (p *Official) Search(ctx context.Context, q string, tech []string) ([]Resul
 			}
 			u := *base
 			u.Path = path.Join(path.Dir(base.Path), rel)
-			out = append(out, Result{Title: idx.Titles[id], URL: u.String(), Score: score + titleRelevance(idx.Titles[id], q, tech)})
+			intro := 0
+			if len(TopicTerms(q, tech)) <= 4 {
+				for _, section := range []string{"tutorial", "getting_started", "core-concepts", "introduction", "quickstart"} {
+					if strings.Contains(idx.Docnames[id], section) {
+						intro = 20
+						break
+					}
+				}
+			}
+			out = append(out, Result{Title: idx.Titles[id], URL: u.String(), Score: score + titleRelevance(idx.Titles[id], q, tech) + intro})
 		}
 	}
 	if !available || len(out) == 0 {
@@ -204,6 +218,17 @@ func titleRelevance(title, query string, technologies []string) int {
 		if strings.Contains(normalized, specific[i]+" "+specific[i+1]) {
 			score += 100
 		}
+	}
+	// A page named after the requested subject is stronger evidence than
+	// administration pages whose titles merely contain that subject.
+	subject := []string{}
+	for _, term := range specific {
+		if !contains([]string{"create", "read", "write", "list", "example", "fazer"}, term) {
+			subject = append(subject, term)
+		}
+	}
+	if len(subject) == 1 && strings.TrimSuffix(strings.TrimSpace(normalized), "s") == subject[0] {
+		score += 60
 	}
 	return score
 }

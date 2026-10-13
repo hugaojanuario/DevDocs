@@ -10,6 +10,7 @@ import (
 	"github.com/hugojanuario/devdocs/internal/model"
 	"github.com/hugojanuario/devdocs/internal/search"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -90,6 +91,7 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 	}
 	a := model.Answer{Query: r.Query, Language: r.Language, Examples: []model.Example{}, References: []model.Reference{}, Evidence: []model.Evidence{}, Observations: []string{}, Mode: "deterministic", Status: "completed", Quality: "extracted"}
 	type fetched struct {
+		index    int
 		result   search.Result
 		doc      extraction.Document
 		final    string
@@ -127,20 +129,35 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 		go func(i int, res search.Result) {
 			defer wg.Done()
 			raw, final, err := e.Fetcher.Fetch(ctx, res.URL, 2<<20)
-			d := fetched{result: res, final: final, err: err}
+			d := fetched{index: i, result: res, final: final, err: err}
 			if err == nil {
 				d.source, d.official = search.Classify(final)
 				if len(r.PreferredSources) == 1 && r.PreferredSources[0] == "official" && !d.official {
 					d.err = errors.New("redirect left official source")
 				} else {
-					d.doc, d.err = extraction.Extract(raw, search.Terms(r.Query), fmt.Sprintf("source-%d", i+1), d.source.Technology)
+					d.doc, d.err = extraction.Extract(raw, search.TopicTerms(r.Query, technologies), fmt.Sprintf("source-%d", i+1), d.source.Technology)
 				}
 			}
 			docs[i] = d
 		}(i, res)
 	}
 	wg.Wait()
-	for i, d := range docs {
+	// Select a coherent answer from the best supported page. Unused fetch
+	// failures and incidental summaries do not change a good answer's status.
+	sort.SliceStable(docs, func(i, j int) bool {
+		score := func(d fetched) int {
+			if d.err != nil || (d.doc.Summary == "" && len(d.doc.Examples) == 0) {
+				return -10000
+			}
+			n := d.result.Score/10 + d.doc.Score
+			if len(d.doc.Examples) > 0 {
+				n += 200
+			}
+			return n
+		}
+		return score(docs[i]) > score(docs[j])
+	})
+	for _, d := range docs {
 		if d.err != nil {
 			a.Status = "partial"
 			continue
@@ -149,7 +166,7 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 			a.Status = "partial"
 			continue
 		}
-		id := fmt.Sprintf("source-%d", i+1)
+		id := fmt.Sprintf("source-%d", d.index+1)
 		u, _ := url.Parse(d.final)
 		version := d.doc.Version
 		if version == "" {
@@ -177,13 +194,40 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 				if len(a.Examples) >= 1 {
 					break
 				}
+				setupID := id
+				if ex.Setup == "" && ex.Language == "python" {
+					for _, contextDoc := range docs {
+						if contextDoc.err != nil || contextDoc.source.Technology != d.source.Technology {
+							continue
+						}
+						setup := extraction.ImportContext(contextDoc.doc.ContextBlocks, ex.Code)
+						if setup == "" {
+							continue
+						}
+						ex.Setup = setup
+						setupID = fmt.Sprintf("source-%d", contextDoc.index+1)
+						ex.SetupReferenceID = setupID
+						if setupID != id {
+							contextURL, _ := url.Parse(contextDoc.final)
+							a.References = append(a.References, model.Reference{ID: setupID, Title: contextDoc.doc.Title, URL: contextDoc.final, Domain: contextURL.Hostname(), Official: contextDoc.official, Technology: contextDoc.source.Technology, Version: contextDoc.doc.Version, Excerpt: setup})
+						}
+						break
+					}
+				}
 				a.Examples = append(a.Examples, ex)
-				a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: id, Field: "example", Quote: ex.Code})
+				quote := ex.SourceCode
+				if quote == "" {
+					quote = ex.Code
+				}
+				a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: id, Field: "example", Quote: quote})
+				for _, line := range strings.Split(ex.Setup, "\n") {
+					if line != "" {
+						a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: setupID, Field: "setup", Quote: line})
+					}
+				}
 			}
 		}
-		if len(a.Examples) == 1 {
-			break
-		}
+		break
 	}
 	if len(a.References) == 0 {
 		return model.Answer{}, search.ErrUnavailable

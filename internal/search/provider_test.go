@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -66,5 +67,17 @@ func TestProviderFailureAndOfficialFallback(t *testing.T) {
 func TestFunctionTitleRanksBeforeGeneralMentions(t *testing.T) {
 	if titleRelevance("pandas.read_csv", "Como ler um CSV com Pandas?", []string{"pandas"}) <= titleRelevance("Comparison with spreadsheets", "Como ler um CSV com Pandas?", []string{"pandas"}) {
 		t.Fatal("function relevance lost")
+	}
+}
+
+func TestBasicQuestionPrefersIntroductionOverAdministration(t *testing.T) {
+	idx := []byte(`Search.setIndex({"docnames":["administration/dag-serialization","core-concepts/dags"],"titles":["Dag Serialization","Dags"],"terms":{"create":[0,1],"dag":[0,1],"airflow":0},"titleterms":{"dag":[0,1]}});`)
+	p := &Official{Fetcher: fakeFetch{raw: idx}}
+	results, err := p.Search(context.Background(), "Como criar um DAG no Airflow?", []string{"airflow"})
+	if err != nil || len(results) != 2 || !strings.Contains(results[0].URL, "core-concepts/dags") {
+		t.Fatal(results, err)
+	}
+	if got := TopicTerms("Como ler CSV com Python e Pandas?", []string{"python", "pandas"}); !reflect.DeepEqual(got, []string{"read", "csv"}) {
+		t.Fatal(got)
 	}
 }

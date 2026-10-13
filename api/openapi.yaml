@@ -1901,6 +1901,25 @@
           },
           "reference_id": {
             "type": "string"
+          },
+          "source_code": {
+            "type": "string",
+            "maxLength": 16000,
+            "description": "Original literal documentation block, before separating interactive prompts and output."
+          },
+          "setup": {
+            "type": "string",
+            "maxLength": 16000,
+            "description": "Literal import statements collected from the same page for aliases used by this snippet. Context only; not a claim that every dependency is supplied."
+          },
+          "output": {
+            "type": "string",
+            "maxLength": 16000,
+            "description": "Documented interactive output, never included in copied executable code."
+          },
+          "setup_reference_id": {
+            "type": "string",
+            "description": "Reference providing the documented imports. Defaults to reference_id when absent."
           }
         },
         "required": [
@@ -1922,7 +1941,8 @@
             "enum": [
               "summary",
               "description",
-              "example"
+              "example",
+              "setup"
             ]
           },
           "quote": {

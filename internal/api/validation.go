@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/hugojanuario/devdocs/internal/extraction"
 	"github.com/hugojanuario/devdocs/internal/model"
 	"github.com/hugojanuario/devdocs/internal/search"
 	"github.com/hugojanuario/devdocs/internal/security"
@@ -72,10 +73,26 @@ func validAnswer(a model.Answer) bool {
 		refs[r.ID] = r
 	}
 	for _, ex := range a.Examples {
+		if ex.SetupReferenceID != "" {
+			if _, ok := refs[ex.SetupReferenceID]; !ok || ex.Setup == "" {
+				return false
+			}
+		}
 		if _, ok := refs[ex.ReferenceID]; !ok {
 			return false
 		}
 		if !text(ex.Code, 1, 16000) || !text(ex.Language, 1, 50) || ex.Explanations == nil {
+			return false
+		}
+		if !text(ex.SourceCode, 0, 16000) || !text(ex.Setup, 0, 16000) || !text(ex.Output, 0, 16000) {
+			return false
+		}
+		if ex.SourceCode != "" {
+			code, output := extraction.NormalizeTranscript(ex.SourceCode, ex.Language)
+			if ex.Code != code || ex.Output != output {
+				return false
+			}
+		} else if ex.Output != "" {
 			return false
 		}
 		for _, xp := range ex.Explanations {
@@ -97,6 +114,7 @@ func validAnswer(a model.Answer) bool {
 	}
 	hasSummary, hasDescription := a.Summary == "", a.Description == ""
 	hasExamples := map[int]bool{}
+	setupEvidence := map[string]bool{}
 	for _, ev := range a.Evidence {
 		r, ok := refs[ev.ReferenceID]
 		if !ok || !text(ev.Quote, 1, 16000) {
@@ -116,7 +134,11 @@ func validAnswer(a model.Answer) bool {
 		case "example":
 			matched := false
 			for i, ex := range a.Examples {
-				if ex.ReferenceID == ev.ReferenceID && ex.Code == ev.Quote {
+				quote := ex.SourceCode
+				if quote == "" {
+					quote = ex.Code
+				}
+				if ex.ReferenceID == ev.ReferenceID && quote == ev.Quote {
 					hasExamples[i] = true
 					matched = true
 				}
@@ -124,8 +146,36 @@ func validAnswer(a model.Answer) bool {
 			if !matched {
 				return false
 			}
+		case "setup":
+			matched := false
+			for _, ex := range a.Examples {
+				for _, line := range strings.Split(ex.Setup, "\n") {
+					setupID := ex.SetupReferenceID
+					if setupID == "" {
+						setupID = ex.ReferenceID
+					}
+					if setupID == ev.ReferenceID && line == ev.Quote && (strings.HasPrefix(line, "import ") || strings.HasPrefix(line, "from ")) {
+						setupEvidence[setupID+"\x00"+line] = true
+						matched = true
+					}
+				}
+			}
+			if !matched {
+				return false
+			}
 		default:
 			return false
+		}
+	}
+	for _, ex := range a.Examples {
+		setupID := ex.SetupReferenceID
+		if setupID == "" {
+			setupID = ex.ReferenceID
+		}
+		for _, line := range strings.Split(ex.Setup, "\n") {
+			if line != "" && !setupEvidence[setupID+"\x00"+line] {
+				return false
+			}
 		}
 	}
 	return hasSummary && hasDescription && len(hasExamples) == len(a.Examples)

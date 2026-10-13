@@ -5,6 +5,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/hugojanuario/devdocs/internal/model"
 	"github.com/hugojanuario/devdocs/internal/search"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
@@ -12,13 +13,34 @@ import (
 type Document struct {
 	Title, Summary, Description, Version string
 	Examples                             []model.Example
+	Score                                int
+	ContextBlocks                        []string
 }
+
+var assignmentRE = regexp.MustCompile(`(?m)^[A-Za-z_]\w*\s*=[^=]`)
+var iniHeaderRE = regexp.MustCompile(`(?m)^\[[A-Za-z_][\w.-]*\]\s*$`)
+var shellCommandRE = regexp.MustCompile(`^(?:\$ |airflow |docker |kubectl |python[23]? |pip[3]? |go (?:run|build|test|install) )`)
 
 func clean(s string) string { return strings.Join(strings.Fields(s), " ") }
 func trim(s string, n int) string {
 	r := []rune(s)
 	if len(r) > n {
 		return string(r[:n])
+	}
+	return s
+}
+
+func summaryText(s string) string {
+	for i := 30; i+2 < len(s); i++ {
+		if strings.ContainsRune(".!?", rune(s[i])) && s[i+1] == ' ' && s[i+2] >= 'A' && s[i+2] <= 'Z' {
+			return s[:i+1]
+		}
+	}
+	if len([]rune(s)) > 500 {
+		s = trim(s, 500)
+		if end := strings.LastIndex(s, " "); end > 0 {
+			s = s[:end]
+		}
 	}
 	return s
 }
@@ -72,7 +94,13 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 		}
 	}
 	if best >= 0 {
-		d.Summary = trim(paragraphs[best], 2000)
+		d.Summary = summaryText(paragraphs[best])
+	}
+	// API pages lead with their definition. Prefer that over a later options
+	// paragraph which merely repeats more query words.
+	definition := clean(content.Find("dl.py.function > dd > p,dl.py.method > dd > p").First().Text())
+	if relevance(definition, terms) > 0 {
+		d.Summary = summaryText(definition)
 	}
 	if second >= 0 {
 		d.Description = trim(paragraphs[second], 3000)
@@ -82,6 +110,11 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 		score   int
 	}
 	blocks := []block{}
+	contextBlocks := []string{}
+	content.Find("pre").Each(func(_ int, s *goquery.Selection) {
+		contextBlocks = append(contextBlocks, strings.Trim(s.Text(), "\r\n"))
+	})
+	d.ContextBlocks = contextBlocks
 	content.Find("pre").Each(func(_ int, s *goquery.Selection) {
 		code := strings.Trim(s.Text(), "\r\n")
 		if len(code) == 0 || len(code) > 16000 || relevance(code, terms) == 0 {
@@ -96,6 +129,9 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 			if strings.HasPrefix(c, "highlight-") {
 				language = strings.TrimPrefix(c, "highlight-")
 			}
+		}
+		if language == "default" || language == "none" {
+			language = ""
 		}
 		if language == "" {
 			switch tech {
@@ -113,6 +149,24 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 				language = "text"
 			}
 		}
+		if iniHeaderRE.MatchString(code) {
+			language = "ini"
+		}
+		if shellCommandRE.MatchString(code) {
+			language = "shell"
+		}
+		if language == "pycon" || language == "python3" || language == "ipython3" || language == "ipython" {
+			language = "python"
+		}
+		sourceCode := code
+		code, output := NormalizeTranscript(sourceCode, language)
+		if code == "" || relevance(code, terms) == 0 {
+			return
+		}
+		setup := ""
+		if language == "python" {
+			setup = ImportContext(contextBlocks, code)
+		}
 		explanations := []model.Explanation{}
 		p := s.Parent()
 		preceding := s.PrevAllFiltered("p").First()
@@ -121,10 +175,23 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 		}
 		quote := clean(preceding.Text())
 		// This is a source quote, never an invented line-by-line interpretation.
-		if len(quote) >= 20 && len(quote) <= 2000 {
+		if len(quote) >= 20 && len(quote) <= 500 && quote != d.Summary {
 			explanations = append(explanations, model.Explanation{Snippet: code, Description: quote, ReferenceID: reference})
 		}
-		blocks = append(blocks, block{model.Example{Language: language, Code: code, Explanations: explanations, ReferenceID: reference}, relevance(code, terms)})
+		score := relevance(code, terms)*30 - min(strings.Count(code, "\n"), 30)*3
+		if assignmentRE.MatchString(code) {
+			score += 4
+		}
+		if language == "python" && (tech == "python" || tech == "pandas" || tech == "airflow" || tech == "sqlalchemy") {
+			score += 20
+		}
+		if setup != "" {
+			score += 5
+		}
+		if strings.Contains(output, "Traceback (most recent call last)") || strings.Contains(output, "SyntaxError:") {
+			score -= 100
+		}
+		blocks = append(blocks, block{model.Example{Language: language, Code: code, SourceCode: sourceCode, Setup: setup, Output: output, Explanations: explanations, ReferenceID: reference}, score})
 	})
 	for len(blocks) > 0 && len(d.Examples) < 3 {
 		best := 0
@@ -134,6 +201,9 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 			}
 		}
 		d.Examples = append(d.Examples, blocks[best].example)
+		if len(d.Examples) == 1 {
+			d.Score = blocks[best].score
+		}
 		blocks = append(blocks[:best], blocks[best+1:]...)
 	}
 	return d, nil

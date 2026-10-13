@@ -67,7 +67,7 @@ func Detect(q string) []string {
 func Terms(q string) []string {
 	q = strings.ToLower(q)
 	replacements := map[string]string{"ler": "read", "leitura": "read", "csv": "csv", "arquivos": "file", "arquivo": "file", "volumes": "volume", "criar": "create", "utilizar": "use", "usar": "use", "três": "three", "juncao": "join", "junção": "join", "ambiente": "environment"}
-	stop := map[string]bool{"como": true, "com": true, "no": true, "na": true, "em": true, "de": true, "do": true, "da": true, "o": true, "a": true, "um": true, "uma": true, "usando": true, "how": true, "to": true, "in": true, "the": true, "use": true, "using": true}
+	stop := map[string]bool{"e": true, "para": true, "por": true, "que": true, "qual": true, "quero": true, "preciso": true, "fazer": true, "of": true, "with": true, "an": true, "please": true, "como": true, "com": true, "no": true, "na": true, "em": true, "de": true, "do": true, "da": true, "o": true, "a": true, "um": true, "uma": true, "usando": true, "how": true, "to": true, "in": true, "the": true, "use": true, "using": true}
 	seen := map[string]bool{}
 	out := []string{}
 	for _, w := range tokenRE.FindAllString(q, -1) {
@@ -85,3 +85,15 @@ func Terms(q string) []string {
 var versionRE = regexp.MustCompile(`(?:\b|/)(\d+\.\d+(?:\.\d+)?)(?:\b|/)`)
 
 func Version(s string) string { return versionRE.FindString(s) }
+
+// Technology names identify the collection, not the subject of the question.
+// Counting "Python" as evidence makes unrelated Python pages look relevant.
+func TopicTerms(q string, technologies []string) []string {
+	terms := []string{}
+	for _, term := range Terms(q) {
+		if !contains(technologies, term) && term != "fazer" {
+			terms = append(terms, term)
+		}
+	}
+	return terms
+}
