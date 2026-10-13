@@ -96,7 +96,7 @@ export function Header() {
         )}
       </div>
       <MobileNav open={menu} onOpenChange={setMenu} />
-      <Sheet title="Nova pesquisa" open={search} onOpenChange={setSearch}>
+      <Sheet fullWidth title="Nova pesquisa" open={search} onOpenChange={setSearch}>
         <div className="p-4">
           <SearchField
             autoFocus
