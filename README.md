@@ -37,6 +37,10 @@ logs, analytics ou arquivos de pesquisas. Fontes oficiais são reconhecidas por 
 registrados, não por substring do domínio. Para adicionar fontes/tecnologias, edite
 `internal/search/sources.go` e regenere o contrato/tipos quando acrescentar tecnologias selecionáveis.
 
+O resultado padrão traz um resumo e um exemplo principal. Pedidos básicos de hello world em
+Python usam um template curto, com `print` e instrução de execução, sustentado por trechos
+coletados ao vivo da documentação oficial; Tkinter e asyncio exigem pedidos explícitos.
+
 Respostas são **determinísticas**: trechos literais e código de páginas acessíveis. Não há tradução
 inventada, interpretação de cada linha ou preenchimento de campos ausentes. A interface omite
 seções vazias e sinaliza conteúdo parcial. Explicações são parágrafos próximos ao exemplo, citados;

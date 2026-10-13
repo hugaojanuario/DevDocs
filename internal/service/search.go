@@ -77,6 +77,13 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 	if r.Technology != "" {
 		technologies = []string{r.Technology}
 	}
+	if search.BasicPythonHello(r.Query, technologies) && !(len(r.PreferredSources) == 1 && r.PreferredSources[0] == "complementary") {
+		a, err := e.pythonHello(ctx, r)
+		if err != nil {
+			return model.Answer{}, err
+		}
+		return e.remember(key, generation, a)
+	}
 	results, err := e.Provider.Search(ctx, r.Query, technologies)
 	if err != nil {
 		return model.Answer{}, err
@@ -158,7 +165,6 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 			a.Technology = d.source.Technology
 			a.Version = version
 			a.Summary = d.doc.Summary
-			a.Description = d.doc.Description
 			if a.Summary != "" {
 				a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: id, Field: "summary", Quote: a.Summary})
 			}
@@ -166,14 +172,17 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 				a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: id, Field: "description", Quote: a.Description})
 			}
 		}
-		if len(a.Examples) < 6 {
+		if len(a.Examples) < 1 {
 			for _, ex := range d.doc.Examples {
-				if len(a.Examples) >= 6 {
+				if len(a.Examples) >= 1 {
 					break
 				}
 				a.Examples = append(a.Examples, ex)
 				a.Evidence = append(a.Evidence, model.Evidence{ReferenceID: id, Field: "example", Quote: ex.Code})
 			}
+		}
+		if len(a.Examples) == 1 {
+			break
 		}
 	}
 	if len(a.References) == 0 {
@@ -199,7 +208,11 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 			a.Observations = append(a.Observations, "A versão solicitada não foi confirmada nas fontes coletadas. Confira a versão de cada referência.")
 		}
 	}
-	raw, _ = json.Marshal(a)
+	return e.remember(key, generation, a)
+}
+
+func (e *Engine) remember(key [32]byte, generation uint64, a model.Answer) (model.Answer, error) {
+	raw, _ := json.Marshal(a)
 	if e.TTL > 0 && e.Capacity > 0 && len(raw) <= 256<<10 {
 		e.mu.Lock()
 		if e.generation != generation {
