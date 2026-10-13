@@ -1,0 +1,113 @@
+name: devdocs
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '5m'
+    max-file: '2'
+services:
+  devdocs-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: devdocs
+      POSTGRES_USER: devdocs
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    command: [postgres, -c, max_wal_size=512MB, -c, min_wal_size=80MB, -c, log_statement=none, -c, log_min_error_statement=panic]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [database]
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U devdocs -d devdocs']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: 1g
+  devdocs-api:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.api
+    environment: &api-env
+      API_ADDR: ':8081'
+      DATABASE_URL: postgres://devdocs:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@devdocs-postgres:5432/devdocs?sslmode=disable
+      CLI_TOKEN: ${CLI_TOKEN:?set CLI_TOKEN}
+      WEB_PASSWORD: ${WEB_PASSWORD:?set WEB_PASSWORD}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:8080}
+      TRUST_PRIVATE_NETWORK: ${TRUST_PRIVATE_NETWORK:-false}
+      SEARCH_PROVIDER: ${SEARCH_PROVIDER:-official}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      CACHE_TTL: ${CACHE_TTL:-5m}
+      CACHE_ENTRIES: ${CACHE_ENTRIES:-32}
+    depends_on:
+      devdocs-postgres:
+        condition: service_healthy
+      devdocs-migrate:
+        condition: service_completed_successfully
+    networks: [api, database, egress]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+    mem_limit: 256m
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8081/api/v1/ready']
+      interval: 10s
+      timeout: 3s
+      retries: 6
+  devdocs-migrate:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.api
+    command: [migrate]
+    environment: *api-env
+    depends_on:
+      devdocs-postgres:
+        condition: service_healthy
+    networks: [database]
+    restart: 'no'
+    read_only: true
+    cap_drop: [ALL]
+    logging: *logging
+  devdocs-web:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.web
+    ports:
+      - '${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:8080'
+    depends_on:
+      devdocs-api:
+        condition: service_healthy
+    networks: [api, web]
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 64m
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/api/v1/ready']
+      interval: 10s
+      timeout: 3s
+      retries: 6
+  devdocs-tests:
+    profiles: [test]
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.api
+      target: build
+    command: [go, test, -tags=integration, -count=1, -v, ./tests]
+    environment:
+      TEST_DATABASE_URL: postgres://devdocs:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@devdocs-postgres:5432/devdocs_test?sslmode=disable
+    networks: [database]
+    depends_on:
+      devdocs-postgres:
+        condition: service_healthy
+    logging: *logging
+volumes:
+  postgres-data:
+networks:
+  api:
+    internal: true
+  database:
+    internal: true
+  web:
+  egress:

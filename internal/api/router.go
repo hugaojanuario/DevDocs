@@ -276,6 +276,9 @@ func New(c config.Config, store bookmarks.Store, engine service.Searcher) http.H
 						fail(w, r, 404, "not_found", "Consulta não encontrada")
 						return
 					}
+					if cache, ok := engine.(interface{ Clear() }); ok {
+						cache.Clear()
+					}
 					w.WriteHeader(204)
 				})
 			})

@@ -9,7 +9,6 @@ import (
 	"github.com/hugojanuario/devdocs/internal/extraction"
 	"github.com/hugojanuario/devdocs/internal/model"
 	"github.com/hugojanuario/devdocs/internal/search"
-	"github.com/hugojanuario/devdocs/internal/security"
 	"net/url"
 	"strings"
 	"sync"
@@ -29,7 +28,7 @@ type entry struct {
 }
 type Engine struct {
 	Provider search.SearchProvider
-	Fetcher  *security.Fetcher
+	Fetcher  search.ContentFetcher
 	TTL      time.Duration
 	Capacity int
 	mu       sync.Mutex
@@ -37,7 +36,7 @@ type Engine struct {
 	slots    chan struct{}
 }
 
-func New(provider search.SearchProvider, fetcher *security.Fetcher, ttl time.Duration, capacity int) *Engine {
+func New(provider search.SearchProvider, fetcher search.ContentFetcher, ttl time.Duration, capacity int) *Engine {
 	return &Engine{Provider: provider, Fetcher: fetcher, TTL: ttl, Capacity: capacity, cache: map[[32]byte]entry{}, slots: make(chan struct{}, 4)}
 }
 func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answer, error) {
@@ -196,8 +195,19 @@ func (e *Engine) Search(ctx context.Context, r model.SearchRequest) (model.Answe
 				break
 			}
 		}
-		e.cache[key] = entry{raw: raw, expires: time.Now().Add(e.TTL)}
+		expires := time.Now().Add(e.TTL)
+		e.cache[key] = entry{raw: raw, expires: expires}
 		e.mu.Unlock()
+		time.AfterFunc(e.TTL, func() {
+			e.mu.Lock()
+			defer e.mu.Unlock()
+			if v, ok := e.cache[key]; ok && v.expires.Equal(expires) {
+				delete(e.cache, key)
+			}
+		})
 	}
 	return a, nil
 }
+
+// Clear removes transient search data, including after a saved query is deleted.
+func (e *Engine) Clear() { e.mu.Lock(); clear(e.cache); e.mu.Unlock() }

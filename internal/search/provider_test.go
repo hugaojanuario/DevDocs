@@ -1,6 +1,9 @@
 package search
 
 import (
+	"context"
+	"errors"
+	"net/http"
 	"reflect"
 	"testing"
 )
@@ -26,5 +29,36 @@ func TestOfficialIndex(t *testing.T) {
 	}
 	if _, e = parseIndex([]byte(`alert("fake")`)); e == nil {
 		t.Fatal("accepted invalid index")
+	}
+}
+
+type fakeFetch struct {
+	err error
+	raw []byte
+}
+
+func (f fakeFetch) Fetch(context.Context, string, int64) ([]byte, string, error) {
+	return f.raw, "https://docs.python.org/3/searchindex.js", f.err
+}
+func (f fakeFetch) Provider(context.Context, string, http.Header) ([]byte, error) {
+	return f.raw, f.err
+}
+func TestProviderFailureAndOfficialFallback(t *testing.T) {
+	idx := []byte(`Search.setIndex({"docnames":["library/csv"],"titles":["CSV"],"terms":{"csv":0},"titleterms":{"csv":0}});`)
+	official := &Official{Fetcher: fakeFetch{raw: idx}}
+	r, e := official.Search(context.Background(), "Python CSV", []string{"python"})
+	if e != nil || len(r) != 1 || r[0].URL != "https://docs.python.org/3/library/csv.html" {
+		t.Fatal(r, e)
+	}
+	b := &Brave{Fetcher: fakeFetch{err: errors.New("upstream down")}, Fallback: official}
+	if r, e = b.Search(context.Background(), "Python CSV", []string{"python"}); e != nil || len(r) != 1 {
+		t.Fatal("fallback failed")
+	}
+	b.Fallback = nil
+	if _, e = b.Search(context.Background(), "Python CSV", nil); !errors.Is(e, ErrProvider) {
+		t.Fatal(e)
+	}
+	if _, e = official.Search(context.Background(), "unknown", nil); !errors.Is(e, ErrUnavailable) {
+		t.Fatal(e)
 	}
 }

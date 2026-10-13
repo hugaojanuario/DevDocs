@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hugojanuario/devdocs/internal/security"
 	"net/http"
 	"net/url"
 	"path"
@@ -20,12 +19,18 @@ type Result struct {
 	Title, URL, Snippet string
 	Score               int
 }
+type ContentFetcher interface {
+	Fetch(context.Context, string, int64) ([]byte, string, error)
+}
+type ProviderFetcher interface {
+	Provider(context.Context, string, http.Header) ([]byte, error)
+}
 type SearchProvider interface {
 	Search(context.Context, string, []string) ([]Result, error)
 }
 type Brave struct {
 	Key      string
-	Fetcher  *security.Fetcher
+	Fetcher  ProviderFetcher
 	Fallback SearchProvider
 }
 
@@ -68,7 +73,7 @@ func (b *Brave) Search(ctx context.Context, q string, tech []string) ([]Result, 
 	return Rank(out, tech), nil
 }
 
-type Official struct{ Fetcher *security.Fetcher }
+type Official struct{ Fetcher ContentFetcher }
 type sphinxIndex struct {
 	Docnames   []string                   `json:"docnames"`
 	Titles     []string                   `json:"titles"`
