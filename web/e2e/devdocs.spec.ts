@@ -165,6 +165,12 @@ test("mobile: Sheet e código sem quebra", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Tecnologias", exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Abrir pesquisa" }).click();
+  const searchSheet=page.getByRole("dialog", { name: "Nova pesquisa" });
+  await expect(searchSheet).toBeVisible();
+  expect((await searchSheet.boundingBox())?.width).toBe(360);
+  await page.keyboard.press("Escape");
+  await expect(searchSheet).toHaveCount(0);
 });
 test("erros e parcial não inventam conteúdo", async ({ page }) => {
   await page.route("**/api/v1/search", (route) =>
