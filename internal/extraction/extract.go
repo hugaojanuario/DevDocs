@@ -37,6 +37,7 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 	if e != nil {
 		return Document{}, e
 	}
+	doc.Find(".headerlink").Remove()
 	title := clean(doc.Find("h1").First().Text())
 	if title == "" {
 		title = clean(doc.Find("title").Text())
