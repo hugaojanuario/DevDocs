@@ -58,3 +58,12 @@ compress_serialized_dags = False</pre><pre class="highlight-python">with DAG("ex
 		t.Fatal(d, err)
 	}
 }
+
+func TestCreatingSubjectPrefersConstructionOverTesting(t *testing.T) {
+	raw := []byte(`<main><h1>Dags</h1><p>A Dag is a collection of tasks with dependencies.</p><p>Create defaults for Operators inside a Dag.</p><pre>dag.test(use_executor=True)</pre><pre>with DAG("example") as dag:
+    task = EmptyOperator(task_id="task")</pre></main>`)
+	d, err := Extract(raw, []string{"create", "dag"}, "source-1", "airflow")
+	if err != nil || len(d.Examples) != 2 || d.Examples[0].Code == "dag.test(use_executor=True)" || d.Summary != "A Dag is a collection of tasks with dependencies." {
+		t.Fatal(d, err)
+	}
+}

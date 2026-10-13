@@ -20,6 +20,7 @@ type Document struct {
 var assignmentRE = regexp.MustCompile(`(?m)^[A-Za-z_]\w*\s*=[^=]`)
 var iniHeaderRE = regexp.MustCompile(`(?m)^\[[A-Za-z_][\w.-]*\]\s*$`)
 var shellCommandRE = regexp.MustCompile(`^(?:\$ |airflow |docker |kubectl |python[23]? |pip[3]? |go (?:run|build|test|install) )`)
+var identifierRE = regexp.MustCompile(`^[A-Za-z_]\w*$`)
 
 func clean(s string) string { return strings.Join(strings.Fields(s), " ") }
 func trim(s string, n int) string {
@@ -95,6 +96,24 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 	}
 	if best >= 0 {
 		d.Summary = summaryText(paragraphs[best])
+	}
+	// Describe the subject before its advanced options. Operation words such as
+	// "create" should not make a later paragraph displace the introduction.
+	subjectTerms := []string{}
+	creating := false
+	for _, term := range terms {
+		if term == "create" {
+			creating = true
+		}
+		if term != "create" && term != "read" && term != "write" && term != "list" {
+			subjectTerms = append(subjectTerms, term)
+		}
+	}
+	for _, paragraph := range paragraphs {
+		if relevance(paragraph, subjectTerms) > 0 {
+			d.Summary = summaryText(paragraph)
+			break
+		}
 	}
 	// API pages lead with their definition. Prefer that over a later options
 	// paragraph which merely repeats more query words.
@@ -179,6 +198,13 @@ func Extract(raw []byte, terms []string, reference, tech string) (Document, erro
 			explanations = append(explanations, model.Explanation{Snippet: code, Description: quote, ReferenceID: reference})
 		}
 		score := relevance(code, terms)*30 - min(strings.Count(code, "\n"), 30)*3
+		if creating {
+			for _, term := range subjectTerms {
+				if identifierRE.MatchString(term) && regexp.MustCompile(`(?i)(?:\b|_)`+regexp.QuoteMeta(term)+`\s*\(`).MatchString(code) {
+					score += 50
+				}
+			}
+		}
 		if assignmentRE.MatchString(code) {
 			score += 4
 		}
