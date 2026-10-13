@@ -1,3 +1,5 @@
+![DevDocs — Documentação técnica verificável, direta e sem conversa.](docs/assets/devdocs-banner.png)
+
 # DevDocs
 
 Pesquisa de documentação técnica com evidências, exemplos de código e referências verificáveis.
